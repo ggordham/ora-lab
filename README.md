@@ -24,7 +24,26 @@ Scripts and setups to use Terraform with Proxmox to build out Oracle servers.
    Example rights would be "PVEVMAdmin" "PVEPoolAdmin" roles in order to create VM's and add storage to VM's
 
 ### Part II - create a VM tempalte to build you VM's from
+The basis of this process is to have a VM template that will be used to thin clone to a new VM.
+The easiest way to build this tempalte is from a pre-built cloud-init image. Most Linux distributions provide these images.  We are using QCOW2 image files.
+Download the image and stage it somewhere accessble by the proxmox server.
+This script can use NFS mount for the staging.
 
+
+1. Copy the pve-mk-template.sh to your proxmox server
+2. Update the paramters at the top of the script:
+    1. newvm_id = # The ID number of the template VM to create, this needs to be unique
+    2. temp_name = # the name of the template
+    3. pve_repo_root = # pve storage repo for the root volume
+    4. pve_repo_u01 = # pve storage repo for the second disk (/u01)
+    5. source_img = # full path and file name of the source image file
+    6. use_nfs = # set to FALSE to not use NFS mount to source the tempalte image
+    7. nfs_mount = # Full NFS path to the mount and server NFS is shared from
+    8. mount_path = # location to temporaryly mount the NFS on the proxmox server
+3. Run the script as the root user on the proxmox server
+```bash
+./pve-mk-template.sh
+```
 
 ### Part III - create a VM with Terraform
 1. Download the scripts from GIT

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Settings for the script
-newvm_id=9028     # VM ID number of template
-temp_name=vm9028temp  # name of VM tempalte
+newvm_id=####     # VM ID number of template
+temp_name=vmtempname  # name of VM tempalte
 pve_repo_root=local-slow01   # disk repo for boot drive
 pve_repo_u01=local-fast01    # disk repo for second u01 mount
 
@@ -11,14 +11,17 @@ pve_repo_u01=local-fast01    # disk repo for second u01 mount
 source_img=/mnt/software/Oracle/OEL/OL7U9_x86_64-olvm-b77.qcow2
 
 # following items are for bringing a NFS mount online 
-nfs_mount=freenas-priv1:/mnt/Pool1/Software
+use_nfs=TRUE
+nfs_mount=mynfsserver.com:/mnt/Pool1/Software
 mount_path=/mnt/software
 
 
 # Temporary mount software mount
 # this is where the source image is located
-mkdir /mnt/software
-mount -t nfs ${nfs_mount} ${mount_path}
+if [ "$use_nfs" == "TRUE" ]; then
+  mkdir "${mount_path}"
+  mount -t nfs "${nfs_mount}" "${mount_path}"
+fi;
 
 # Create a template VM
 qm create ${newvm_id} --cpu cputype="host" --memory 2048 --net0 virtio,bridge=vmbr0 --name "${temp_name}" --pool "Templates"
@@ -40,6 +43,8 @@ qm set ${newvm_id} --scsihw virtio-scsi-pci --scsi1 ${pve_repo_u01}:vm-${newvm_i
 qm template ${newvm_id}
 
 # Unmount the NFS mount used to pull the image.
-umount /mnt/software
+if [ "$use_nfs" == "TRUE" ]; then
+  umount "${mount_path}"
+fi;
 
 #END
