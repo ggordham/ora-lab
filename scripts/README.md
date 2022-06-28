@@ -34,8 +34,11 @@ A sample session would look something like this:
 ```
 export mosUser=<your MOS username>
 export mosPass=<your MOS Password>
+echo "226P;Linux x86-64" > ./.getMOSPatch.sh.cfg
 getMOSPatch.sh patch=123456 destination=/u01/app/oracle/patchstage
 ```
+
+Note: this is downloading Linux x86-64 platform, use the script in interactive mode to get a list of platforms with reset=yes parameter."
 
 Note: for patches that have multiple versions like a one off for a RU or OPatch you can use REGEXP option to filter.
 This example will download the patch 6880880 where the filename also contians 19
