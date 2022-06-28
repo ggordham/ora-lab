@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# -*-Shell-script-*-
+# shellcheck shell=bash
+# shellcheck disable=SC2006
+
+# Author Gary Gordhamer
+
+# INT - DATE   - Description
+# ----------------------------------------------------------------------------
+# GG - 20220429 - Initial version of script
+#
+
+# FUNCTIONS in this Library:
+#  logMesg CODE TEXT [I|W|E] FILE
+#  cfgGet FILE CFG_NAME
+
+DEBUG=Y
+
+# set parameters to exit on unbound variable and return any error in pipe
+set -uo pipefail
+
+# Source the direcotry of the running script
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Create a very static path
+PATH="/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin:$SCRIPTDIR"
+
+# function to log messages
+#   logMesg CODE TEXT [I|W|E] FILE
+#     returns the mesg_code that was passed in or 255 for internal error
+#
+function logMesg(){
+
+    # check that we had 4 command line options
+    if [ "$#" -eq 4 ]; then
+        msg_code=$1
+        msg_text=$2
+        msg_level=$3
+        msg_file=$4
+
+        # shellcheck disable=SC2034 
+        case "$msg_level" in
+            "I") msg_level="INFO";;
+            "W") msg_level="WARNING";;
+            "E") msg_level="ERROR";;
+              *) msg_level="INVALID log_message level"; log_msg_error=1 ;; 
+        esac
+        timestamp=$( date +%Y%m%d-%H%M%S )
+        msg_code=$(printf "%03d" "$msg_code")
+        status_msg="${timestamp} - GG-${msg_level} ${msg_code} - ${msg_text}"  
+
+        if [ "$msg_file" = "NONE" ]; then
+            echo "$status_msg" 
+        else
+            # check if our messages file exists, if not create it
+            if [ ! -f "$msg_file" ]; then 
+              touch "$msg_file"
+            fi
+  
+            # check if our messages file can be written to
+            if [ -w "$msg_file" ]; then
+                echo "$status_msg" | tee -a "$msg_file"
+            else 
+                echo "INTERNAL ERROR: can not write to log file $msg_file" >&2
+                msg_code=255
+            fi
+        fi
+    fi
+
+    return $msg_code
+}
+
+# function to lookup config settings from file
+#   cfgGet FILE CONF_NAME
+#     returns the configuration setting.  Note, config file is in format CONF_NAME=VALUE
+#
+cfgGet() {
+
+    # check that we had 2 command line options
+    if [ "$#" -eq 2 ]; then
+        conf_file=$1
+        conf_name=$2
+
+        if [ -r "${conf_file}" ]; then
+
+            conf_set=$( grep -E "^${conf_name}=" -m 1 "${conf_file}" 2>/dev/null || echo "VAR=__UNDEFINED__" )
+            if [ "$DEBUG" == "Y" ]; then echo "conf_set: ${conf_set}" >&2; fi
+            conf_val=$( echo "${conf_set}" |  head -n 1 | cut -d '=' -f 2-; )
+            if [ "$DEBUG" == "Y" ]; then echo "conf_val: ${conf_val}" >&2; fi
+            printf -- "%s" "${conf_val}";
+        else
+            echo "INTERNAL ERROR: can not read configuration file $conf_file" >&2
+        fi
+    fi 
+}
+
+# Simple function to see if a value exists in a space separated list of values
+#  usage  inList "A B C D" "B"
+function inList {
+
+  local my_list="$1"
+  local my_item="$2"
+  local my_result
+
+  if [[ $my_list =~ (^|[[:space:]])"$my_item"($|[[:space:]]) ]] ; then
+    my_result=0  # TRUE item is in list
+  else
+    my_result=1  # FALSE item is not in list
+  fi
+  # return results
+  return $my_result
+}
+
+# Simple function to see if a value exists in a coma separated list of values
+#  usage  inListC "A,B,C,D" "B"
+function inListC {
+
+    local my_listc="$1"
+    local my_itemc="$2"
+    local my_resultc
+
+    if inList "$( echo "${my_listc}" | tr "," " " )" "${my_itemc}"; then
+        my_resultc=0
+    else
+        my_resultc=1
+    fi
+  # return results
+  return $my_resultc
+}
