@@ -1,10 +1,10 @@
-#Scripts directory
+# Scripts directory
 
 Contains mutltipe scripts used in the lab to build out Oracle databases
 
 -------------------------------------------------------------
 
-##oraSwStg.sh - script to stage Oracle software (databse and GI).
+## oraSwStg.sh - script to stage Oracle software (databse and GI).
 
 Sample testing command line
 
@@ -12,7 +12,7 @@ Sample testing command line
 
 -------------------------------------------------------------
 
-##oraSwInst.sh - script to install Oracle software (databse and GI).
+## oraSwInst.sh - script to install Oracle software (databse and GI).
 
 Sample testing command line
 
@@ -28,7 +28,7 @@ TODO
 
 -------------------------------------------------------------
 
-##getMOSPatch.sh - script originall from Maris Elsins
+## getMOSPatch.sh - script originall from Maris Elsins
 
 Used to download Oracle patches from MOS directly, used in batch mode in these automation scripts.
 For more details see the script itself for basic settings.
@@ -51,5 +51,6 @@ This example will download the patch 6880880 where the filename also contians 19
 Note: when doing RU patches be sure to be specific, E.G. to get 19.10 use 1910 not 191 which will put 1911, 1912, etc.
 
 
-============================================================================
+-------------------------------------------------------------
+
 END
