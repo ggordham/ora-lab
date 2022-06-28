@@ -9,8 +9,12 @@ Scripts and setups to use Terraform with Proxmox to build out Oracle servers.
 - configure terraform
 
 ## Repository Structure
-```/scripts      -- shell scripts used through builds```
-```/terraform    -- terraform scripts or templates```
+
+```
+/scripts      -- shell scripts used through builds
+/terraform    -- terraform scripts or templates
+/test         -- BATS testing files for scripts - you don't need these to use the scripts
+```
 
 ## Instructions
 ### Part I - one time setup for API access by Terraform
@@ -125,3 +129,23 @@ https://gitlab.com/FritsHoogland/vagrant-builder
 ## Tips
 - looking for ZFS storage files, use "zfs list" on PVE server.
 -
+
+#Testing scripts
+
+To test the scripts you will need the BATS testing framework.
+
+```
+wget https://github.com/bats-core/bats-core/archive/refs/heads/master.zip
+unzip zip file
+alias bats=~/bats-core-master/bin/bats
+
+wget https://github.com/ggordham/ora-lab/archive/refs/heads/main.zip
+unzip zip file
+cd ora-lab-master/scripts
+
+export mosUser=username
+export mosPass=password
+bats ../test/getMosPatch.bats
+```
+
+
