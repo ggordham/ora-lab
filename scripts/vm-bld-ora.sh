@@ -34,6 +34,11 @@ pga_aggregate_target_mb=500
 # Install required RPM's
 sudo yum -y install oracle-epel-release-el7
 sudo yum -y install git ansible wget
+sudo yum -y rng-tools
+
+# Enable RNGD
+sudo systemctl enable rngd
+sudo systemctl start rngd
 
 # Configure firewalld for Oracle Listener
 firewall-cmd --permanent --zone=public --add-port=1521/tcp

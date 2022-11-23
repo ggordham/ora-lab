@@ -171,7 +171,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
         # Download patches
         # getMOSPatch requires perl and wget
-        /bin/yum -y install perl wget
+        # /bin/yum -y install perl wget  # perl no longer needed by v 1.3 of getMOSPatch.sh
         echo "226P;Linux x86-64" > "${SCRIPTDIR}/.getMOSPatch.sh.cfg"
         mosUser=$( cfgGet "secure.conf" "MOSUSER" )
         mosPass=$( cfgGet "secure.conf" "MOSPASS" )
