@@ -13,7 +13,7 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
   pool = var.v_pool
   clone = var.v_srcvm
   full_clone = false
-  clone_wait = 15
+  # clone_wait = 15
   agent = 1
 
   nameserver = var.v_nameserver
@@ -63,11 +63,23 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
       private_key = file(pathexpand("~/.ssh/id_rsa"))
     }
   }
+  provisioner "file" {
+    source = "hosts.debian.tmpl"
+    destination = "/tmp/hosts.debian.tmpl"
+    connection {
+      type = "ssh"
+      host = self.default_ipv4_address
+      user = "cloud-user"
+      private_key = file(pathexpand("~/.ssh/id_rsa"))
+    }
+  }
      
   provisioner "remote-exec" {
     inline = [
       "sudo mv /tmp/hosts.redhat.tmpl /etc/cloud/templates/hosts.redhat.tmpl",
-      "sudo chown root:root /etc/cloud/templates/hosts.redhat.tmpl"
+      "sudo mv /tmp/hosts.debian.tmpl /etc/cloud/templates/hosts.debian.tmpl",
+      "sudo chown root:root /etc/cloud/templates/hosts.redhat.tmpl",
+      "sudo chown root:root /etc/cloud/templates/hosts.debian.tmpl"
     ]
     connection {
       type = "ssh"
