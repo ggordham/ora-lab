@@ -127,3 +127,16 @@ function inListC {
   # return results
   return $my_resultc
 }
+
+# simple function to remove whitespace from front and back of a string
+#   Will not remove space between words / characters
+trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    printf '%s' "$var"
+}
+
+# END

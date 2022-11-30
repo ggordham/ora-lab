@@ -7,7 +7,7 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Test variables
+# Internal variables
 CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
 
 # retun command line help information
@@ -200,23 +200,26 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         # Download the OPatch for this version
         logMesg 0 "Downloading OPatch" I "NONE"
         opatch_ver=$( cfgGet "${CONF_FILE}" "${ora_ver}_opatch" )
-        if [ "$opatch_ver" == "__UNDEFINED__" ]; then logMesg 0 "No OPatch to download for $ora_ver" I "NONE"; fi
-        if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_ver: $opatch_ver" I "NONE" ; fi
-        p_patch=6880880
-        if [ "$DEBUG" == "TRUE" ]; then debug_flag="debug=yes"; else debug_flag=""; fi
-        "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" regexp="$opatch_ver" destination="${stg_dir}/patch" "$debug_flag"
-        if [ "$DEBUG" == "TRUE" ]; then logMsg 0 "getMOSPatch.sh tmp2 file: $( cat "${SCRIPTDIR}/.getMosPatch.sh.tmp2" )" I "NONE" ; fi
-
-        p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
-        if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_file: $p_file" I "NONE" ; fi
-        [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-        [[ -f "$p_file" ]] && logMesg 0 "OPatch file downloaded: $p_file" I "NONE"
-
-        # if unzip install type then update OPatch in place
-        if [ "$install_type" == "unzip" ]; then
-            if [ "$TEST" == "TRUE" ]; then logMesg 0 "not unziping OPatch $p_file to $ora_home" I "NONE" 
-            else [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ora_home} ${p_file}"; fi
-        fi
+        if [ "$opatch_ver" == "__UNDEFINED__" ]; then 
+            logMesg 0 "No OPatch to download for $ora_ver" I "NONE"
+        else
+            if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_ver: $opatch_ver" I "NONE" ; fi
+            p_patch=6880880
+            if [ "$DEBUG" == "TRUE" ]; then debug_flag="debug=yes"; else debug_flag=""; fi
+            "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" regexp="$opatch_ver" destination="${stg_dir}/patch" "$debug_flag"
+            if [ "$DEBUG" == "TRUE" ]; then logMsg 0 "getMOSPatch.sh tmp2 file: $( cat "${SCRIPTDIR}/.getMosPatch.sh.tmp2" )" I "NONE" ; fi
+ 
+            p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
+            if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_file: $p_file" I "NONE" ; fi
+            [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
+            [[ -f "$p_file" ]] && logMesg 0 "OPatch file downloaded: $p_file" I "NONE"
+ 
+            # if unzip install type then update OPatch in place
+            if [ "$install_type" == "unzip" ]; then
+                if [ "$TEST" == "TRUE" ]; then logMesg 0 "not unziping OPatch $p_file to $ora_home" I "NONE" 
+                else [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ora_home} ${p_file}"; fi
+            fi
+        fi # end of OPatch work
 
         logMesg 0 "Completed $SCRIPTNAME" I "NONE"
 
