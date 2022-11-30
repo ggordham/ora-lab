@@ -81,8 +81,9 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
       "sudo chown root:root /etc/cloud/templates/hosts.redhat.tmpl",
       "sudo chown root:root /etc/cloud/templates/hosts.debian.tmpl",
       "sudo mkdir /opt/ora-lab",
-      "sudo chown cloud-user:cloud-user /opt/ora-lab"
-
+      "sudo chown cloud-user:cloud-user /opt/ora-lab",
+      "/usr/bin/curl https://raw.githubusercontent.com/ggordham/ora-lab/main/scripts/get-ora-lab.sh > /tmp/get-ora-lab.sh",
+      "/bin/bash /tmp/get-ora-lab.sh"
     ]
     connection {
       type = "ssh"
@@ -91,6 +92,19 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
       private_key = file(pathexpand("~/.ssh/id_rsa"))
     }
   }
+
+  provisioner "file" {
+    source = "server.conf"
+    destination = "/opt/ora-lab/scripts/server.conf"
+    connection {
+      type = "ssh"
+      host = self.default_ipv4_address
+      user = "cloud-user"
+      private_key = file(pathexpand("~/.ssh/id_rsa"))
+    }
+  }
+ 
+
 
 }
 
