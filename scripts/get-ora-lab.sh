@@ -48,8 +48,10 @@ done
 
 # reboot after cloud-init is finished
 #  Be sure to exit 0 for terraform to get good status
-nohup /bin/bash -c "/usr/bin/sleep 20 && /usr/bin/sudo /usr/sbin/reboot "
+echo "initiating reboot $( date )" >> "${log_file}"
+nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" &
 jobs | /usr/bin/tee -a "${log_file}"
+echo "Exiting  $( date )" >> "${log_file}"
 exit 0
 
 # END 
