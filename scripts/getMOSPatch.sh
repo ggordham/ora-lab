@@ -157,7 +157,7 @@ if [ ! -f "$CFG" ] || [ "$p_reset" == "yes" ] ; then
 
 fi
 
-# if now regular expression was passed on paramter, then set to all
+# if no regular expression was passed on paramter, then set to all
 if [ -z "$p_regexp" ] ; then
   p_regexp=".*"
 fi
@@ -225,7 +225,7 @@ do
 done               # end of patch number loop
 
 # if we have a list of patches in TMP3 file then start the download process
-if ([ ! -z "${p_patch}" ] && [ "$( wc -l "$TMP3" | cut -d ' ' -f 1 )" -gt 0 ]) ; then
+if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' -f 1 )" -gt 0 ]) ; then
     echo
     echo "Downloading the patches:"
     # Loop through the TMP3 file and download patches

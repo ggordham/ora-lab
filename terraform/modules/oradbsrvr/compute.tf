@@ -79,7 +79,10 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
       "sudo mv /tmp/hosts.redhat.tmpl /etc/cloud/templates/hosts.redhat.tmpl",
       "sudo mv /tmp/hosts.debian.tmpl /etc/cloud/templates/hosts.debian.tmpl",
       "sudo chown root:root /etc/cloud/templates/hosts.redhat.tmpl",
-      "sudo chown root:root /etc/cloud/templates/hosts.debian.tmpl"
+      "sudo chown root:root /etc/cloud/templates/hosts.debian.tmpl",
+      "sudo mkdir /opt/ora-lab",
+      "sudo chown cloud-user:cloud-user /opt/ora-lab"
+
     ]
     connection {
       type = "ssh"

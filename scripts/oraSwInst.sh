@@ -4,10 +4,10 @@
 # Internal settings
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
-source oralab.shlib
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
 # Test variables
-CONF_FILE=ora_inst_files.conf
+CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
 
 # retun command line help information
 function help_oraSwInst {
@@ -22,7 +22,7 @@ function help_oraSwInst {
   echo "--orasubver [Oracle minor version]              " >&2
   echo "--orabase [Oracle base]                         " >&2
   echo "--orahome [Oracle home]                         " >&2
-  echo "--srcdir [Source directory]                     " >&2
+  echo "--stgdir  [Staging directory]                   " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
@@ -37,7 +37,7 @@ function checkopt_oraSwInst {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,srcdir:,oraver:,orasubver:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,stgdir:,oraver:,orasubver:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -50,7 +50,7 @@ function checkopt_oraSwInst {
                      shift 2;;
           "--orasubver") ora_sub_ver="$2"
                      shift 2;;
-          "--srcdir") src_dir="$2"
+          "--stgdir") stg_dir="$2"
                      shift 2;;
           "--orabase") ora_base="$2"
                      shift 2;;
@@ -88,7 +88,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     # check if a ORACLE_BASE was set, otherwise lookup default setting
     if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" ora_base ); fi
     if [ -z "${ora_home:-}" ]; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
-    ora_inst=$( dirname "${ora_base}" )
+    ora_inst=$( dirname "${ora_base}" )/oraInventory
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
@@ -112,15 +112,23 @@ if checkopt_oraSwInst "$OPTIONS" ; then
         if [ "$install_type" = "unzip" ]; then
 
             # looking up RU patches
-            ru_list=$( cfgGet "${CONF_FILE}" "${ora_sub_ver}_RU" )
+            ru_patch=$( cfgGet "${CONF_FILE}" "${ora_sub_ver}_RU" )
             one_off=$( cfgGet "${CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
 
-            if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
+            if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_patch: $ru_patch" I "NONE" ; fi
             if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
+
+            # check for RU patch directory
+            ru_dir="${stg_dir}/patch/${ru_patch}"
+            if [ -d "${ru_dir}"  ]; then 
+                logMesg 0 "RU patch directory exists" I "NONE"
+            else
+                logMesg 1 "RU patch direcotry not found: ${ru_dir}" E "NONE"
+            fi
 
             # setting up command line paramters
             cmd_parms=""
-            if [ "$ru_list" != "__UNDEFINED__" ]; then cmd_parms="-applyRU $ru_list"; fi
+            if [ "$ru_patch" != "__UNDEFINED__" ]; then cmd_parms="-applyRU $ru_dir"; fi
             if [ "$one_off" != "__UNDEFINED__" ]; then cmd_parms="$cmd_parms -applyOneOffs $one_off"; fi
 
             cmd_parms="$cmd_parms -silent -ignoreprereqfailure oracle.install.option=INSTALL_DB_SWONLY"
@@ -138,8 +146,17 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             cmd_parms="$cmd_parms oracle.install.db.OSRACDBA_GROUP=dba"
             cmd_parms="$cmd_parms DECLINE_SECURITY_UPDATES=true"
 
-            if [ "$TEST" == "TRUE" ]; then logMesg 0 "Install CMD: ${ora_home}/runInstaller $cmd_parms" I "NONE"; fi
+            # Run the install command, unless we are testing
+            if [ "$TEST" == "TRUE" ]; then 
+                logMesg 0 "Install CMD: ${ora_home}/runInstaller $cmd_parms" I "NONE"; 
+            else
+                /usr/bin/su oracle -c "${ora_home}/runInstaller $cmd_parms"
+            fi
         fi
+
+        # Run post install scripts
+        "${ora_inst}"/orainstRoot.sh
+        "${ora_home}"/root.sh
 
     else
         echo "ERROR! Did not find version: $ora_ver"

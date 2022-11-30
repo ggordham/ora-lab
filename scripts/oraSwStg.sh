@@ -5,10 +5,10 @@
 # Internal settings
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
-source oralab.shlib
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
 # Test variables
-CONF_FILE=ora_inst_files.conf
+CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
 
 # retun command line help information
 function help_oraSwStg {
@@ -120,6 +120,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "preinstall_rpm: $preinstall_rpm" I "NONE" 
           else /bin/yum -y install "${preinstall_rpm}"; fi
 
+        logMesg 0 "Creating install directories" I "NONE"
         # Setup the required directories for install
         /usr/bin/mkdir -p "${ora_base}"
         /usr/bin/mkdir -p "${ora_home}"
@@ -136,6 +137,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
             /usr/bin/chown -R oracle:oinstall "${stg_dir}"
         fi
 
+        logMesg 0 "Staging Oracle database software" I "NONE"
         # Stage the Oracle software to the right location
         for m_file in $( echo "$main_file" | tr "," " " ); do
             if [ -f "${src_dir}/${m_file}" ]; then 
@@ -166,31 +168,57 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
 
+        logMesg 0 "Making patch staging directories" I "NONE"
         /usr/bin/mkdir -p "${stg_dir}/patch"
-        /usr/bin/chown -R oracle:oinstall "${stg_dir}/patch"
+        /usr/bin/chown -R oracle:oinstall "${stg_dir}"
 
         # Download patches
-        # getMOSPatch requires perl and wget
-        # /bin/yum -y install perl wget  # perl no longer needed by v 1.3 of getMOSPatch.sh
+        # getMOSPatch requires wget
+        # /bin/yum -y install wget  # perl no longer needed by v 1.3 of getMOSPatch.sh
+        logMesg 0 "Downloading Oracle patches" I "NONE"
         echo "226P;Linux x86-64" > "${SCRIPTDIR}/.getMOSPatch.sh.cfg"
-        mosUser=$( cfgGet "secure.conf" "MOSUSER" )
-        mosPass=$( cfgGet "secure.conf" "MOSPASS" )
+        mosUser=$( cfgGet "${SCRIPTDIR}/secure.conf" "MOSUSER" )
+        mosPass=$( cfgGet "${SCRIPTDIR}/secure.conf" "MOSPASS" )
         export mosUser mosPass
 
         # Generate a list of patches for RU and One Offs
         if [ "$ru_list" == "__UNDEFINED__" ]; then logMesg 0 "No RU patch to download for $ora_sub_ver" I "NONE"
-            else p_list="$ru_list"; fi
+            else p_list="$ru_list"; logMesg 0 "RU patches: $ru_list" I "NONE"; fi
         if [ "$one_off" == "__UNDEFINED__" ]; then logMesg 0 "No one off patchs to download for $ora_sub_ver" I "NONE"
-            elif [ "$p_list" == "" ]; then p_list="${one_off}"
-            else p_list="${p_list},${one_off}"; fi
+            elif [ "$p_list" == "" ]; then p_list="${one_off}"; logMesg 0 "One off patche: $one_off" I "NONE"
+            else p_list="${p_list},${one_off}"; logMesg 0 "One off patche: $one_off" I "NONE"; fi
 
         # Loop through each patch and download
         for p_patch in $( echo "$p_list" | tr "," " " ); do
+            logMesg 0 "Downloading and unzipping Patch: $p_patch" I "NONE"
             "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" destination="${stg_dir}/patch"
             p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
-            [[ -f "$p_file" ]] && chown oracle:oinstall "${stg_dir}/patch ${p_file}"
+            [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
             [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${stg_dir}/patch ${p_file}"
         done
+
+        # Download the OPatch for this version
+        logMesg 0 "Downloading OPatch" I "NONE"
+        opatch_ver=$( cfgGet "${CONF_FILE}" "${ora_ver}_opatch" )
+        if [ "$opatch_ver" == "__UNDEFINED__" ]; then logMesg 0 "No OPatch to download for $ora_ver" I "NONE"; fi
+        if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_ver: $opatch_ver" I "NONE" ; fi
+        p_patch=6880880
+        if [ "$DEBUG" == "TRUE" ]; then debug_flag="debug=yes"; else debug_flag=""; fi
+        "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" regexp="$opatch_ver" destination="${stg_dir}/patch" "$debug_flag"
+        if [ "$DEBUG" == "TRUE" ]; then logMsg 0 "getMOSPatch.sh tmp2 file: $( cat "${SCRIPTDIR}/.getMosPatch.sh.tmp2" )" I "NONE" ; fi
+
+        p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
+        if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_file: $p_file" I "NONE" ; fi
+        [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
+        [[ -f "$p_file" ]] && logMesg 0 "OPatch file downloaded: $p_file" I "NONE"
+
+        # if unzip install type then update OPatch in place
+        if [ "$install_type" == "unzip" ]; then
+            if [ "$TEST" == "TRUE" ]; then logMesg 0 "not unziping OPatch $p_file to $ora_home" I "NONE" 
+            else [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ora_home} ${p_file}"; fi
+        fi
+
+        logMesg 0 "Completed $SCRIPTNAME" I "NONE"
 
     else
         # Version of Oracle not found in config file
