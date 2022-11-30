@@ -39,6 +39,7 @@ sudo /usr/bin/chown cloud-user:cloud-user "${target_path}"
 
 # download the ora-lab scripts
 /usr/bin/curl -L ${repo_url}/tarball/main | tar xz -C "${target_path}" --strip=1 "${package_root}-???????/${target}"  | /usr/bin/tee -a "${log_file}"
+/usr/bin/find ${target_path} -name \*.sh -exec /usr/bin/chmod 754 {} \;
 
 # check if cloud-init is finished then reboot
 while [ ! "$( trim "$( /usr/bin/sudo /usr/bin/cloud-init status | /usr/bin/cut -d: -f2 )" )" == "done" ]; do
