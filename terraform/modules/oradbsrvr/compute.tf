@@ -102,6 +102,16 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
     }
   }
  
+  provisioner "file" {
+    source = "../shared/secure.conf"
+    destination = "/opt/ora-lab/scripts/secure.conf"
+    connection {
+      type = "ssh"
+      host = self.default_ipv4_address
+      user = "cloud-user"
+      private_key = file(pathexpand("~/.ssh/id_rsa"))
+    }
+  }
 
 
 }

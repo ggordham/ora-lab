@@ -17,6 +17,8 @@ This can be called from build tool like Terraform using following commands:
 "/bin/bash /tmp/get-ora-lab.sh"
 ```
 
+*Note you need to also copy the server.conf and secure.conf files to the vm prior to running the ora-lab scripts.*
+
 -------------------------------------------------------------
 
 ## oraLnxPre.sh
