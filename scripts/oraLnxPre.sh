@@ -13,7 +13,7 @@ SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
 # Internal variables
-CONF_FILE="${SCRIPTDIR}"/linux_pre.conf
+CONF_FILE="${SCRIPTDIR}"/defaults.conf
 
 # retun command line help information
 function help_oraLnxPre {
@@ -24,27 +24,18 @@ function help_oraLnxPre {
   echo >&2
   echo "Usage: $SCRIPTNAME [-h --debug --test ]        " >&2
   echo "-h          give this help screen               " >&2
-  echo "--oraver [Oracle version]                       " >&2
-  echo "--orasubver [Oracle minor version]              " >&2
-  echo "--orabase [Oracle base]                         " >&2
-  echo "--orahome [Oracle home]                         " >&2
-  echo "--srcdir [Source directory]                     " >&2
-  echo "--stgdir [Staging Directory]                    " >&2
+  echo "--disks [list of disks to format+mount]         " >&2
+  echo "--dfs   [disk fs type]                          " >&2
+  echo "--sftt  [Software mount type]                   " >&2
+  echo "--sftm  [Software mount point]                  " >&2
+  echo "--sfts  [Software source]                       " >&2
+  echo "--lsnp  [Oracle Listener Port]                  " >&2
+  echo "--pkgs  [Linux packages to install]             " >&2
+  echo "--pkgt  [Linux package tool]                    " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
 }
-
-disk_list=/u01:/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1,/u02:/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi2
-fs_type=xfs
-
-sft_type=nfs
-sft_mount=/mnt/software
-sft_source=freenas-priv1:/mnt/Pool1/Software
-
-lsnr_port=1521
-lnx_pkgs=git,ansible,wget,rng-tools,nfs-utils
-lnx_pkg_tool=/bin/yum
 
 #check command line options
 function checkopt_oraSwStg {
@@ -55,7 +46,7 @@ function checkopt_oraSwStg {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,srcdir:,oraver:,orasubver:,stgdir:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -64,17 +55,21 @@ function checkopt_oraSwStg {
             case $1 in
                "-h") help_oraSwInst                          #  help
                      exit 1;;
-          "--oraver") ora_ver="$2"
+          "--disks") disk_list="$2"
                      shift 2;;
-          "--orasubver") ora_sub_ver="$2"
+          "--dfs") fs_type="$2"
                      shift 2;;
-          "--srcdir") src_dir="$2"
+          "--sftt") sft_type="$2"
                      shift 2;;
-          "--stgdir") stg_dir="$2"
+          "--sftm") sft_mount="$2"
                      shift 2;;
-          "--orabase") ora_base="$2"
+          "--sfts") sft_source="$2"
                      shift 2;;
-           "--orahome") ora_home="$2"
+           "--lsnp") lsnr_port="$2"
+                     shift 2;;
+           "--pkgs") lnx_pkgs="$2"
+                     shift 2;;
+           "--pkgt") lnx_pkg_tool="$2"
                      shift 2;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
@@ -108,46 +103,70 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
+    # check if required settings are set, otherwise load from config file
+    if [ -z "${disk_list:-}" ]; then disk_list=$( cfgGet "$CONF_FILE" disk_list ); fi
+    if [ -z "${fs_type:-}" ]; then fs_type=$( cfgGet "$CONF_FILE" fs_type ); fi
+    if [ -z "${sft_type:-}" ]; then sft_type=$( cfgGet "$CONF_FILE" sft_type ); fi
+    if [ -z "${sft_mount:-}" ]; then sft_mount=$( cfgGet "$CONF_FILE" sft_mount ); fi
+    if [ -z "${sft_source:-}" ]; then sft_source=$( cfgGet "$CONF_FILE" sft_source ); fi
+    if [ -z "${lsnr_port:-}" ]; then lsnr_port=$( cfgGet "$CONF_FILE" lsnr_port ); fi
+    if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGet "$CONF_FILE" lnx_pkgs ); fi
+    if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGet "$CONF_FILE" lnx_pkg_tool ); fi
+ 
+    # setup local disks
+    for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
+        mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
+        disk=$( echo "${disk}" | /bin/cut -d : -f 1 )
+        label=$( /bin/basename "$mount" )
+        logMesg 0 "Setting up local storage: fs: $mount disk: $disk " I "NONE"
+        if [ -b "${disk}" ]; then
+            sudo su -c "/bin/mkdir -p ${mount}"
+            sudo su -c "/bin/chmod 755 ${mount}"
+            sudo su -c "/sbin/mkfs.${fs_type} -L ${label} ${disk}"
+            sudo su -c "echo 'LABEL=${label} ${mount} ${fs_type} defaults 0 0' >> /etc/fstab"
+            sudo sh -c "/bin/mount ${mount}"
+        else
+            logMesg 1 "Cloud not find block device:$disk " E "NONE"
+            exit 1
+        fi
+    done
 
-# setup local disks
-for disk in $( echo ${disk_list} | /bin/tr "," " " ); do
-    mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
-    disk=$( echo "${disk}" | /bin/cut -d : -f 1 )
-    label=$( /bin/basename "$mount" )
-    logMesg 0 "Setting up local storage: fs: $mount disk: $disk " I "NONE"
-    if [ -b "${disk}" ]; then
-        sudo su -c "/bin/mkdir -p ${mount}"
-        sudo su -c "/bin/chmod 755 ${mount}"
-        sudo su -c "/sbin/mkfs.${fs_type} -L ${label} ${disk}"
-        sudo su -c "echo 'LABEL=${label} ${mount} ${fs_type} defaults 0 0' >> /etc/fstab"
-        sudo sh -c "/bin/mount ${mount}"
+    # install required packages
+    if [ "${lnx_pkgs}" == "" ]; then
+        logMesg 0 "No extra Linux packages to install." I "NONE"
     else
-        logMesg 1 "Cloud not find block device:$disk " E "NONE"
-        exit 1
+        logMesg 0 "Installing extra Linux packages: ${lnx_pkgs}" I "NONE"
+        sudo sh -c "${lnx_pkg_tool} -y install $( echo "${lnx_pkgs}" | tr "," " " )"
     fi
-done
+    
+    # Enable RNGD
+    if /usr/bin/rpm --quiet -q rng-tools ; then
+        logMesg 0 "Enabeling RNGD " I "NONE"
+        sudo sh -c "/bin/systemctl enable rngd"
+        sudo sh -c "/bin/systemctl start rngd"
+    else
+        logMesg 0 "RNGD not installed, skipping enablement" I "NONE"
+    fi
 
-# install required packages
-logMesg 0 "Installing extra Linux packages: ${lnx_pkgs}" I "NONE"
-sudo sh -c "${lnx_pkg_tool} -y install $( echo ${lnx_pkgs} | tr "," " " )"
+    # Configure firewalld for Oracle Listener
+    logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
+    sudo sh -c "/sbin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
+    sudo sh -c "/sbin/firewall-cmd --reload"
 
-# Enable RNGD
-logMesg 0 "Enabeling RNGD " I "NONE"
-sudo sh -c "/bin/systemctl enable rngd"
-sudo sh -c "/bin/systemctl start rngd"
+    # Setup software mount
+    logMesg 0 "Setting up software mount: $sft_mount" I "NONE"
+    fs_opts="ro,_netdev 0 0"
+    logMesg 0 "Updating fstab" I "NONE"
+    echo "${sft_source} ${sft_mount} ${sft_type} ${fs_opts}" | sudo tee -a /etc/fstab
+    sudo sh -c "/bin/mkdir ${sft_mount}"
+    sudo sh -c "/bin/mount ${sft_mount}"
+    if /bin/mountpoint "${sft_mount}"; then logMesg 0 "Sucess mounting: ${sft_mount}" I "NONE"
+    else logMesg 1 "Faild to mount: $sft_mount" E "NONE"; exit 1; fi
 
-# Configure firewalld for Oracle Listener
-logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
-sudo sh -c "/sbin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
-sudo sh -c "/sbin/firewall-cmd --reload"
+else
+    echo "ERROR - invalid command line parameters" >&2
+    exit 1
+fi
 
-# Setup software mount
-logMesg 0 "Setting up software mount: $sft_mount" I "NONE"
-fs_opts="ro,_netdev 0 0"
-logMesg 0 "Updating fstab" I "NONE"
-echo "${sft_source} ${sft_mount} ${sft_type} ${fs_opts}" | sudo tee -a /etc/fstab
-sudo sh -c "/bin/mkdir ${sft_mount}"
-sudo sh -c "/bin/mount ${sft_mount}"
-if /bin/mountpoint "${sft_mount}"; then logMesg 0 "Sucess mounting: ${sft_mount}" I "NONE"
-else logMesg 1 "Faild to mount: $sft_mount" E "NONE"; exit 1; fi
+#END
 

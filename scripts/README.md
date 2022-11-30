@@ -4,11 +4,40 @@ Contains mutltipe scripts used in the lab to build out Oracle databases
 
 -------------------------------------------------------------
 
+## get-ora-lab.sh
+
+simple script to load ora-lab scripts onto VM during creation.
+Creates /opt/ora-lab directory and loads scripts from GIT.
+
+
+This can be called from build tool like Terraform using following commands:
+
+```
+"/usr/bin/curl https://raw.githubusercontent.com/ggordham/ora-lab/main/scripts/get-ora-lab.sh > /tmp/get-ora-lab.sh",
+"/bin/bash /tmp/get-ora-lab.sh"
+```
+
+-------------------------------------------------------------
+
+## oraLnxPre.sh
+
+Builds out Linux OS items needed for ora-lab scripts to work
+
+-------------------------------------------------------------
+
 ## oraSwStg.sh - script to stage Oracle software (databse and GI).
+
+Script that stages oracle software
+- places install media (unzip or runinstaller)
+- downloads required patches from MOS
+- stages the patches
+- downloads and stages OPatch if possible
 
 Sample testing command line
 
-`./oraSwInst.sh --oraver 19 --orasubver 19_9 --srcdir /mnt/software/Oracle/database/19c --orabase /u01/app/oracle --orahome /u01/app/oracle/product/19/dbhome_1 --test`
+```
+oraSwStg.sh --oraver 19 --orasubver 19_9 --stgdir /u01/app/stage --srcdir /mnt/software/Oracle/database/19c --orabase /u01/app/oracle --orahome /u01/app/oracle/product/19/dbhome_1 --test`
+```
 
 -------------------------------------------------------------
 
@@ -16,7 +45,9 @@ Sample testing command line
 
 Sample testing command line
 
-`./oraSwStg.sh --oraver 19 --orasubver 19_9 --stgdir /u01/app/stage --srcdir /mnt/software/Oracle/database/19c --orabase /u01/app/oracle --orahome /u01/app/oracle/product/19/dbhome_1 --test`
+```
+oraSwInst.sh --oraver 19 --orasubver 19_9 --srcdir /mnt/software/Oracle/database/19c --stgdir /u01/app/stage --orabase /u01/app/oracle --orahome /u01/app/oracle/product/19/dbhome_1 --test`
+```
 
 
 TODO
@@ -50,6 +81,8 @@ This example will download the patch 6880880 where the filename also contians 19
 
 Note: when doing RU patches be sure to be specific, E.G. to get 19.10 use 1910 not 191 which will put 1911, 1912, etc.
 
+TODO
+- replace wget with curl to remove dependency
 
 -------------------------------------------------------------
 

@@ -80,8 +80,6 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
       "sudo mv /tmp/hosts.debian.tmpl /etc/cloud/templates/hosts.debian.tmpl",
       "sudo chown root:root /etc/cloud/templates/hosts.redhat.tmpl",
       "sudo chown root:root /etc/cloud/templates/hosts.debian.tmpl",
-      "sudo mkdir /opt/ora-lab",
-      "sudo chown cloud-user:cloud-user /opt/ora-lab",
       "/usr/bin/curl https://raw.githubusercontent.com/ggordham/ora-lab/main/scripts/get-ora-lab.sh > /tmp/get-ora-lab.sh",
       "/bin/bash /tmp/get-ora-lab.sh"
     ]

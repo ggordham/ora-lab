@@ -50,8 +50,15 @@ This script can use NFS mount for the staging.
 ```bash
 ./pve-mk-template.sh
 ```
+### Part III configure / stage Terraform files
 
-### Part III - create a VM with Terraform
+Files that need to be configured / created
+- terraform/shared/secure.conf
+- scripts/defaut.conf
+- terraform/lab/srvr[01-09]/terraform.tfvars
+- terraform/lab/srvr[01-09]/server.conf
+
+### Part IV - create a VM with Terraform
 1. Download the scripts from GIT
 2. create directory under /terraform for you new VM: E.G.
 ```bash
