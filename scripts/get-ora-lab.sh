@@ -53,7 +53,7 @@ ${target_path}/scripts/runonce.sh "${target_path}/scripts/tstOraInst.sh"
 # reboot after cloud-init is finished
 #  Be sure to exit 0 for terraform to get good status
 echo "initiating reboot $( date )" >> "${log_file}"
-nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" &
+/usr/bin/nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" > /tmp/ora-lab-reboot.log &
 jobs | /usr/bin/tee -a "${log_file}"
 echo "Exiting  $( date )" >> "${log_file}"
 exit 0
