@@ -82,6 +82,7 @@ OPTIONS=$@
 
 if checkopt_oraSwInst "$OPTIONS" ; then
 
+    logMesg 0 "oraSwInst.sh start" I "NONE"
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
@@ -161,6 +162,8 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     else
         echo "ERROR! Did not find version: $ora_ver"
     fi
+
+    logMesg 0 "oraSwInst.sh finished" I "NONE"
 
 else
     echo "ERROR - invalid command line parameters" >&2

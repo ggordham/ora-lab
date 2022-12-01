@@ -22,7 +22,7 @@ modules
 - clean up secure information that is used by other scripts
 - clean up hack for /etc/hosts tempaltes (make generic / less static)
 - allow different soruce for SSH keys (not hard coded)
-
+- look into possible race condition with cloud-init OS update and ora-lab tar install on Linux 8
 
 Each one is based on a source module called oradbsrvr which creates the inital server image with two network interfaces and required storage for easy setup and install.
 

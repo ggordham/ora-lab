@@ -46,7 +46,7 @@ function checkopt_oraSwStg {
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraSwInst                          #  help
+               "-h") help_oraSwStg                          #  help
                      exit 1;;
           "--oraver") ora_ver="$2"
                      shift 2;;
@@ -89,6 +89,7 @@ OPTIONS=$@
 
 if checkopt_oraSwStg "$OPTIONS" ; then
 
+    logMesg 0 "${SCRIPTNAME} start" I "NONE"
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
@@ -227,6 +228,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         # Version of Oracle not found in config file
         echo "ERROR! Did not find version: $ora_ver in config file $CONF_FILE"
     fi
+
+    logMesg 0 "${SCRIPTNAME} finished" I "NONE"
 
 else
     echo "ERROR - invalid command line parameters" >&2

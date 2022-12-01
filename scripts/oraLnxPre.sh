@@ -38,7 +38,7 @@ function help_oraLnxPre {
 }
 
 #check command line options
-function checkopt_oraSwStg {
+function checkopt_oraLnxPre {
 
     #set defaults
     DEBUG=FALSE
@@ -53,7 +53,7 @@ function checkopt_oraSwStg {
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraSwInst                          #  help
+               "-h") help_oraLnxPre                          #  help
                      exit 1;;
           "--disks") disk_list="$2"
                      shift 2;;
@@ -98,8 +98,9 @@ if [ "x$USER" != "xroot" ];then logMesg 1 "You must be logged in as root to run 
 
 OPTIONS=$@
 
-if checkopt_oraSwStg "$OPTIONS" ; then
+if checkopt_oraLnxPre "$OPTIONS" ; then
 
+    logMesg 0 "oraLnxPre.sh start" I "NONE"
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
@@ -116,7 +117,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     # setup local disks
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
         mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
-        disk=$( echo "${disk}" | /bin/cut -d : -f 1 )
+        disk=$( echo "${disk}" | /bin/cut -d : -f 2 )
         label=$( /bin/basename "$mount" )
         logMesg 0 "Setting up local storage: fs: $mount disk: $disk " I "NONE"
         if [ -b "${disk}" ]; then
@@ -162,6 +163,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     sudo sh -c "/bin/mount ${sft_mount}"
     if /bin/mountpoint "${sft_mount}"; then logMesg 0 "Sucess mounting: ${sft_mount}" I "NONE"
     else logMesg 1 "Faild to mount: $sft_mount" E "NONE"; exit 1; fi
+
+    logMesg 0 "oraLnxPre.sh finished" I "NONE"
 
 else
     echo "ERROR - invalid command line parameters" >&2
