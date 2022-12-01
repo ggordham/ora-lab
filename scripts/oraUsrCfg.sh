@@ -26,12 +26,16 @@ export PATH
 !EOP
 
 # setup command aliases in every run rc file
-cat <<!EOP >> /home/oracle/.bashrcQ
+cat <<!EOP >> /home/oracle/.bashrc
 
 # Gary favorite aliases
 alias cdoh='cd $ORACLE_HOME'
 
 !EOP
+
+# setup extra SSH keys for remote access
+echo "$( cfgGet "${SCRIPTDIR}/secure.conf" EXTRA_SSH )" >> /home/cloud-user/.ssh/authorized_keys
+echo "$( cfgGet "${SCRIPTDIR}/secure.conf" EXTRA_SSH )" >> /home/oracle/.ssh/authorized_keys
 
 logMesg 0 "${SCRIPTNAME} finished" I "NONE"
 

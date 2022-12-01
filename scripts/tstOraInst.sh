@@ -44,3 +44,4 @@ logMesg 0 "==== oraUsrCfg.sh" I "NONE"
 
 echo "Build started: $( /bin/last | /bin/grep reboot | /bin/tail -1 )"
 echo "Build finished: $( date )"
+# END

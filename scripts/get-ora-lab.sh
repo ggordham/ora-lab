@@ -47,6 +47,9 @@ while [ ! "$( trim "$( /usr/bin/sudo /usr/bin/cloud-init status | /usr/bin/cut -
     sleep 30
 done
 
+# install the ora-lab run script for after reboot
+${target_path}/scripts/runonce.sh "${target_path}/scripts/tstOraInst.sh"
+
 # reboot after cloud-init is finished
 #  Be sure to exit 0 for terraform to get good status
 echo "initiating reboot $( date )" >> "${log_file}"
