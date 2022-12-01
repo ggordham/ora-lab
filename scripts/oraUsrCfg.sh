@@ -13,9 +13,11 @@ if [ "x$USER" != "xroot" ];then logMesg 1 "You must be logged in as root to run 
 
 logMesg 0 "${SCRIPTNAME} start" I "NONE"
 
+logMesg 0 "Generating new SSH keys for oracle user" I "NONE"
 # generate SSH keys
 su - oracle -c ssh-keygen -t RSA -b 2048 -N ''
 
+logMesg 0 "Installing oracle user command aliases and path updates" I "NONE"
 # setup path in ontime profile 
 cat <<!EOP >> /home/oracle/.bash_profile
 
@@ -34,8 +36,14 @@ alias cdoh='cd $ORACLE_HOME'
 !EOP
 
 # setup extra SSH keys for remote access
-echo "$( cfgGet "${SCRIPTDIR}/secure.conf" EXTRA_SSH )" >> /home/cloud-user/.ssh/authorized_keys
-echo "$( cfgGet "${SCRIPTDIR}/secure.conf" EXTRA_SSH )" >> /home/oracle/.ssh/authorized_keys
+ssh_keys="$( cfgGet "${SCRIPTDIR}/secure.conf" EXTRA_SSH )"
+if [ "$ssh_keys" == "__UNDEFINED__" ]; then
+    logMesg 0 "No additional SSH keys to install" I "NONE"
+else
+    logMesg 0 "Installing additional SSH keys" I "NONE"
+    echo "${ssh_keys}" >> /home/cloud-user/.ssh/authorized_keys
+    echo "${ssh_keys}" >> /home/oracle/.ssh/authorized_keys
+fi
 
 logMesg 0 "${SCRIPTNAME} finished" I "NONE"
 

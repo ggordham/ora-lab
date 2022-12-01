@@ -42,6 +42,8 @@ logMesg 0 "==== oraSwInst.sh" I "NONE"
 logMesg 0 "==== oraUsrCfg.sh" I "NONE"
 /usr/bin/sudo sh -c "${SCRIPTDIR}/oraUsrCfg.sh >> ${log_file}"
 
-echo "Build started: $( /bin/last | /bin/grep reboot | /bin/tail -1 )"
-echo "Build finished: $( date )"
+echo "===============================================================" >> "${log_file}"
+
+echo "Build started: $( /bin/last | /bin/grep reboot | /bin/tail -1 )" >> "${log_file}"
+echo "Build finished: $( date )" >> "${log_file}"
 # END
