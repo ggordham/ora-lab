@@ -151,8 +151,8 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
 
     # Configure firewalld for Oracle Listener
     logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
-    sudo sh -c "/sbin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
-    sudo sh -c "/sbin/firewall-cmd --reload"
+    sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
+    sudo sh -c "/bin/firewall-cmd --reload"
 
     # Setup software mount
     logMesg 0 "Setting up software mount: $sft_mount" I "NONE"
