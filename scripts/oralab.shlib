@@ -8,6 +8,7 @@
 # INT - DATE   - Description
 # ----------------------------------------------------------------------------
 # GG - 20220429 - Initial version of script
+# GG - 20230201 - Drafted getSecure function
 #
 
 # FUNCTIONS in this Library:
@@ -137,6 +138,22 @@ trim() {
     # remove trailing whitespace characters
     var="${var%"${var##*[![:space:]]}"}"
     printf '%s' "$var"
+}
+
+# function to retreive secret.
+#   current version looks in secure.conf file
+#   Future version should support a secrets vault
+getSecret() {
+
+    local my_secret_file=${SCRIPTDIR}/secure.conf
+     # check that we had 1 command line option
+    if [ "$#" -eq 1 ]; then
+        local my_secret_name=$1
+        local my_secret_data
+        my_secret_data=$( cfgGet "${my_secret_file}" "$my_secret_name}" )
+        printf -- "%s" "${my_secret_data}";
+    fi
+
 }
 
 # END

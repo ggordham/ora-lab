@@ -61,6 +61,13 @@ TODO
 
 -------------------------------------------------------------
 
+## oraDBCA.sh - script to create an Oracle database using Database Creation Assistant
+
+TODO
+- add check for default settings vs server sepcific settings
+
+-------------------------------------------------------------
+
 ## getMOSPatch.sh - script originall from Maris Elsins
 
 Used to download Oracle patches from MOS directly, used in batch mode in these automation scripts.

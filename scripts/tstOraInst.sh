@@ -16,6 +16,10 @@ logMesg 0 "==== Log File: ${log_file}" I "NONE"
 # Load configuration information from server specific configuration file
 CONF_FILE="${SCRIPTDIR}"/server.conf
 
+# get list of steps to run
+build_steps=$( cfgGet "$CONF_FILE" build_steps )
+logMesg 0 "=== Build steps: $build_steps" I "NONE"
+
 # Note need to add lookup for any non-defaulted values, not just known ones
 disk_list=$( cfgGet "$CONF_FILE" srvr_disk_list )
 ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver )
@@ -24,23 +28,38 @@ stg_dir=$( cfgGet "$CONF_FILE" srvr_stg_dir )
 ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base )
 ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home )
 
-# run Linux pre-install items
-logMesg 0 "==== oraLnxPre.sh" I "NONE"
-/usr/bin/sudo sh -c "${SCRIPTDIR}/oraLnxPre.sh --disks ${disk_list} >> ${log_file}"
 
-# download and stage rquired software
-logMesg 0 "==== oraSwStg.sh" I "NONE"
-/usr/bin/sudo sh -c "${SCRIPTDIR}/oraSwStg.sh --oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home} >> ${log_file}"
+# run Linux pre-install items (pre)
+if inListC "${build_steps}" "pre"; then
+    logMesg 0 "==== oraLnxPre.sh (pre)" I "NONE"
+    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraLnxPre.sh --disks ${disk_list} >> ${log_file}"
+fi
 
-# run software install
-/usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-/usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-logMesg 0 "==== oraSwInst.sh" I "NONE"
-/usr/bin/sudo sh -c "${SCRIPTDIR}/oraSwInst.sh --oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home} >> ${log_file}"
+# download and stage rquired software (stg)
+if inListC "${build_steps}" "stg"; then
+    logMesg 0 "==== oraSwStg.sh (stg)" I "NONE"
+    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraSwStg.sh --oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home} >> ${log_file}"
+fi
 
-# configure oracle user profile
-logMesg 0 "==== oraUsrCfg.sh" I "NONE"
-/usr/bin/sudo sh -c "${SCRIPTDIR}/oraUsrCfg.sh >> ${log_file}"
+# run software install (inst)
+if inListC "${build_steps}" "inst"; then
+    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
+    logMesg 0 "==== oraSwInst.sh (inst)" I "NONE"
+    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraSwInst.sh --oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home} >> ${log_file}"
+fi
+
+# run database creation assistant (dbca)
+if inListC "${build_steps}" "dbca"; then
+    logMesg 0 "==== oraDBCA.sh (dbca)" I "NONE"
+    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBCA.sh >> ${log_file}"
+fi
+
+# configure oracle user profile (cfg)
+if inListC "${build_steps}" "cfg"; then
+    logMesg 0 "==== oraUsrCfg.sh (cfg)" I "NONE"
+    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraUsrCfg.sh >> ${log_file}"
+fi
 
 echo "===============================================================" >> "${log_file}"
 
