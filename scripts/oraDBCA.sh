@@ -80,6 +80,9 @@ function checkopt_oraDBCA {
 
 OPTIONS=$@
 
+# verify that we are root to run this script
+if [ "x$USER" != "xoracle" ];then logMesg 1 "You must be logged in as oracle to run this script" E "NONE"; exit 1; fi
+
 if checkopt_oraDBCA "$OPTIONS" ; then
 
     logMesg 0 "$SCRIPTNAME start" I "NONE"
@@ -162,94 +165,94 @@ if checkopt_oraDBCA "$OPTIONS" ; then
           exit 1 ;;
     esac
 
-    cat << EOF >> "${response_file}"
-#Database Name
-gdbName=${ora_db_sid}
-sid=${ora_db_sid}
-# Server configuration
-databaseConfigType=SI
-RACOneNodeServiceName=
-policyManaged=false
-managementPolicy=AUTOMATIC
-createServerPool=false
-serverPoolName=
-cardinality=
-force=false
-pqPoolName=
-pqCardinality=
-nodelist=
-runCVUChecks=FALSE
+    cat <<- EOF >> "${response_file}"
+        #Database Name
+        gdbName=${ora_db_sid}
+        sid=${ora_db_sid}
+        # Server configuration
+        databaseConfigType=SI
+        RACOneNodeServiceName=
+        policyManaged=false
+        managementPolicy=AUTOMATIC
+        createServerPool=false
+        serverPoolName=
+        cardinality=
+        force=false
+        pqPoolName=
+        pqCardinality=
+        nodelist=
+        runCVUChecks=FALSE
 
-createAsContainerDatabase=${container_flag}
-numberOfPDBs=1
-pdbName=${ora_db_pdb}
-useLocalUndoForPDBs=true
+        createAsContainerDatabase=${container_flag}
+        numberOfPDBs=1
+        pdbName=${ora_db_pdb}
+        useLocalUndoForPDBs=true
+        
+        templateName=General_Purpose.dbc
 
-templateName=General_Purpose.dbc
+        sysPassword=${db_password}
+        systemPassword=${db_password}
+        pdbAdminPassword=${db_password}
+        dbsnmpPassword=${db_password}
 
-sysPassword=${db_password}
-systemPassword=${db_password}
-pdbAdminPassword=${db_password}
-dbsnmpPassword=${db_password}
-
-# Enterprise Manager Configuration (CENTRAL|DBEXPRESS|BOTH|NONE)
-emConfiguration=NONE
-emExpressPort=5500
-omsHost=
-omsPort=
-emUser=
-emPassword=
-
-# Database Vault and Label Security configuration
-olsConfiguration=false
-dvConfiguration=false
-dvUserName=
-dvUserPassword=
-dvAccountManagerName=
-dvAccountManagerPassword=
-
-# Database Configuration
-# DB Storage
-datafileJarLocation={ORACLE_HOME}/assistants/dbca/templates/
-datafileDestination=${ora_db_data}/{DB_UNIQUE_NAME}/
-recoveryAreaDestination=
-recoveryAreaSize=54525952BYTES
-storageType=FS
-diskGroupName=
-asmsnmpPassword=
-recoveryGroupName=
-useOMF=false
-# DB Character set
-characterSet=AL32UTF8
-nationalCharacterSet=AL16UTF16
-# DB init parameters
-initParams=audit_trail=none,audit_sys_operations=false
-# pga_aggregate_target=795MB,sga_target=2382MB
-
-
-# DB memory parameters
-automaticMemoryManagement=FALSE
-totalMemory=${ora_db_mem}
-databaseType=
-memoryPercentage=
-
-# DB Network configuraiton
-listeners=
-skipListenerRegistration=true
-registerWithDirService=
-dirServiceUserName=
-dirServicePassword=
-walletPassword=
-
-# Misc other options
-variablesFile=
-variables=${db_variables}
-
-# Note 21c + options:
-# pdbOptions=SAMPLE_SCHEMA:false,IMEDIA:true,SPATIAL:true,CWMLITE:true,JSERVER:true,DV:true,OMS:true,ORACLE_TEXT:true
-# dbOptions=SAMPLE_SCHEMA:false,IMEDIA:true,SPATIAL:true,CWMLITE:true,JSERVER:true,DV:true,OMS:true,ORACLE_TEXT:true
-# enableArchive=false
-EOF
+        # Enterprise Manager Configuration (CENTRAL|DBEXPRESS|BOTH|NONE)
+        emConfiguration=NONE
+        emExpressPort=5500
+        omsHost=
+        omsPort=
+        emUser=
+        emPassword=
+        
+        # Database Vault and Label Security configuration
+        olsConfiguration=false
+        dvConfiguration=false
+        dvUserName=
+        dvUserPassword=
+        dvAccountManagerName=
+        dvAccountManagerPassword=
+        
+        # Database Configuration
+        # DB Storage
+        datafileJarLocation={ORACLE_HOME}/assistants/dbca/templates/
+        datafileDestination=${ora_db_data}/{DB_UNIQUE_NAME}/
+        recoveryAreaDestination=
+        recoveryAreaSize=54525952BYTES
+        storageType=FS
+        diskGroupName=
+        asmsnmpPassword=
+        recoveryGroupName=
+        useOMF=false
+        # DB Character set
+        characterSet=AL32UTF8
+        nationalCharacterSet=AL16UTF16
+        # DB init parameters
+        initParams=audit_trail=none,audit_sys_operations=false
+        # pga_aggregate_target=795MB,sga_target=2382MB
+                    
+        
+        # DB memory parameters
+        automaticMemoryManagement=FALSE
+        totalMemory=${ora_db_mem}
+        databaseType=
+        memoryPercentage=
+        
+        # DB Network configuraiton
+        listeners=
+        skipListenerRegistration=true
+        registerWithDirService=
+        dirServiceUserName=
+        dirServicePassword=
+        walletPassword=
+        
+        # Misc other options
+        variablesFile=
+        variables=${db_variables}
+        
+        # Note 21c + options:
+        # pdbOptions=SAMPLE_SCHEMA:false,IMEDIA:true,SPATIAL:true,CWMLITE:true,JSERVER:true,DV:true,OMS:true,ORACLE_TEXT:true
+        # dbOptions=SAMPLE_SCHEMA:false,IMEDIA:true,SPATIAL:true,CWMLITE:true,JSERVER:true,DV:true,OMS:true,ORACLE_TEXT:true
+        # enableArchive=false
+    EOF
 
     # run DBCA tool
     dbca_options=" -silent -ignorePreReqs -ignorePrereqFailure -createDatabase"
@@ -257,7 +260,8 @@ EOF
     if [ "$TEST" == "TRUE" ]; then 
         logMesg 0 "dbca command:  $ORACLE_HOME/bin/dbca $dbca_options -responseFile $response_file" I "NONE" 
     else
-       sh -c "${ORACLE_HOME}/bin/dbca $dbca_options -responseFile $response_file"
+        sh -c "${ORACLE_HOME}/bin/dbca $dbca_options -responseFile $response_file"
+        logMesg 0 "dbca completed with return code: $?" I "NONE"
     fi
 
     # Old options not included 
