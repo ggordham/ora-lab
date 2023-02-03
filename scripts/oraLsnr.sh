@@ -13,11 +13,11 @@ DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
 # retun command line help information
 function help_oraLsnr {
   echo >&2
-  echo "$SCRIPTNAME                                    " >&2
+  echo "$SCRIPTNAME                                     " >&2
   echo "   used to run NETCA to create Oracle db listener" >&2
-  echo "   version: $SCRIPTVER                         " >&2
+  echo "   version: $SCRIPTVER                          " >&2
   echo >&2
-  echo "Usage: $SCRIPTNAME [-h --debug --test ]        " >&2
+  echo "Usage: $SCRIPTNAME [-h --debug --test ]         " >&2
   echo "-h          give this help screen               " >&2
   echo "--orahome [Oracle home]                         " >&2
   echo "--port    [TCP Port]                            " >&2
@@ -29,13 +29,13 @@ function help_oraLsnr {
 #check command line options
 function checkopt_oraLsnr {
 
-        #set defaults
+    #set defaults
     DEBUG=FALSE
     TEST=FALSE
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,stgdir:,oraver:,orasubver:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,port:,orahome: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else

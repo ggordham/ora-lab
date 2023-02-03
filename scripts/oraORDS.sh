@@ -9,112 +9,230 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# static defaults
-ords_path=/u01/app/oracle/product/ords
-ords_src=/mnt/software/Oracle/ords/ords-22.4.0.r3401044.zip
-ords_port=8443
-ords_admin=/u01/app/oracle/admin/ords
-ORDS_CONFIG=${ords_admin}/config
-ords_logs=${ords_admin}/logs
+# Default config information if not passed on command line
+CONF_FILE="${SCRIPTDIR}"/server.conf
+DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
 
-db_host=$( hostname -f )
-db_port=1521
-db_service=pdb1
-sys_password=xxxx
+# retun command line help information
+function help_oraORDS {
+  echo >&2
+  echo "$SCRIPTNAME                                    " >&2
+  echo "   Install and setup Oracle Rest Data Services " >&2
+  echo "   version: $SCRIPTVER                         " >&2
+  echo >&2
+  echo "Usage: $SCRIPTNAME [-h --debug --test ]         " >&2
+  echo "-h          give this help screen               " >&2
+  echo "--ordspath  [ORDS install path]                 " >&2
+  echo "--ordsadmin [ORDS admin path]                   " >&2
+  echo "--ordssrc   [ORDS Source zip file]              " >&2
+  echo "--ordsport  [ORDS port]                         " >&2
+  echo "--debug     turn on debug mode                  " >&2
+  echo "--test      turn on test mode, disable DBCA run " >&2
+  echo "--version | -v Show the script version          " >&2
+}
+
+#check command line options
+function checkopt_oraORDS {
+
+    #set defaults
+    DEBUG=FALSE
+    TEST=FALSE
+    typeset -i badopt=0
+
+    # shellcheck disable=SC2068
+    my_opts=$(getopt -o hv --long debug,test,version,ordspath:,ordsadmin:,ordssrc:,ordsport: -n "$SCRIPTNAME" -- $@)
+    if (( $? > 0 )); then
+        (( badopt=1 ))
+    else
+        eval set -- "$my_opts"
+        while true; do
+            case $1 in
+               "-h") help_oraDBCA                          #  help
+                     exit 1;;
+          "--ordsport") ords_port="$2"
+                     shift 2;;
+          "--odssrc") ords_src="$2"
+                     shift 2;;
+          "--odsadmin") ords_admin="$2"
+                     shift 2;;
+          "--odspath") ords_path="$2"
+                     shift 2;;
+          "--debug") DEBUG=TRUE                         # debug mode
+                     set -x
+                     shift ;;
+           "--test") TEST=TRUE                           # test mode
+                     shift ;;
+           "--version"|"-v") echo "$SCRIPTNAME version: $SCRIPTVER" >&2
+                     exit 0;;
+                "--") shift; break;;                             # finish parsing
+                  *) echo "ERROR! Bad command line option passed: $1"
+                     (( badopt=1 ))
+                     break ;;                                    # unknown flag
+        esac
+    done
+  fi
+
+  return $badopt
+
+}
+
+############################################################################################
+# start here
 
 # verify that we are root to run this script
 if [ "x$USER" != "xroot" ];then logMesg 1 "You must be logged in as root to run this script" E "NONE"; exit 1; fi
 
-# check if the ORDS install file is there
-if [ -f "${ords_src}" ]; then
+OPTIONS=$@
 
-    # install java if it is not arlready installed
-    #   Note lsof used by systemctl start script for ords
-    yum -y install java-11-openjdk lsof
-    if (( $? > 0 )) ; then echo "ERROR could not install Java 11"; exit 1; fi
+if checkopt_oraLsnr "$OPTIONS" ; then
 
-    # create the target directories
-    [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
-    [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
-    [[ ! -d "${ORDS_CONFIG}" ]] && mkdir -p "${ORDS_CONFIG}"
-    [[ ! -d "${ords_logs}" ]] && mkdir -p "${ords_logs}"
-    chown oracle:oinstall "${ords_path}"
-    chown oracle:oinstall "${ords_admin}"
-    chown oracle:oinstall "${ORDS_CONFIG}"
-    chown oracle:oinstall "${ords_logs}"
+    logMesg 0 "${SCRIPTNAME} start" I "NONE"
+    if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
-    # load the ORDS software
-    unzip "${ords_src}" -d "${ords_path}"
+    # check if an command line paramters were passed, otherwise load defaults
+    if [ -z "${ords_path:-}" ]; then ords_path=$( cfgGet "$CONF_FILE" srvr_ords_path ); fi
+    if [ "${ords_path}" == "__UNDEFINED__" ]; then ords_path=$( cfgGet "$DEF_CONF_FILE" ords_path ); fi
+    if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGet "$CONF_FILE" srvr_ords_src ); fi
+    if [ "${ords_src}" == "__UNDEFINED__" ]; then ords_src=$( cfgGet "$DEF_CONF_FILE" ords_src ); fi
+    if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGet "$CONF_FILE" srvr_ords_port ); fi
+    if [ "${ords_port}" == "__UNDEFINED__" ]; then ords_port=$( cfgGet "$DEF_CONF_FILE" ords_port ); fi
+    if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGet "$CONF_FILE" srvr_ords_admin ); fi
+    if [ "${ords_admin}" == "__UNDEFINED__" ]; then ords_admin=$( cfgGet "$DEF_CONF_FILE" ords_admin ); fi
 
-    # Install ORDS into the database
-    echo "ORDS CONFIG: ${ORDS_CONFIG}"
-    export ORDS_CONFIG
-    ords_features="--feature-sdw true --log-folder ${ords_logs}"
-    ords_db="--admin-user SYS --password-stdin --db-hostname ${db_host} --db-port ${db_port} --db-servicename ${db_service}"
-    ords_storage="--schema-tablespace SYSAUX --schema-temp-tablespace TEMP"
-    echo "ORDS COMMAND LINE: ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}"
-    /usr/bin/su oracle -c "echo ${sys_password} | ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}"
+    # get server specific settings
+    ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port )
+    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
 
-    # Configure ORDS standalone server
-    /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.host $( hostname -f )"
-    /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.port ${ords_port}"
+    ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
+    ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
+    if [ "${ora_db_pdb}" == "__UNDEFINED__" ]; then db_service="${ora_db_sid}"
+    else db_servcie="${ora_db_pdb}"; fi
 
-    # Configure ORDS auto start
-    # Create configuration file
-    #   Note ORDS_BASE is the directory under "ords" used by systemctl start
-    echo "# ORDS Service Script Configuration File (ords.config)" > /etc/ords.conf
-    echo "# Generated by oraORDS.sh $( date )"                    >> /etc/ords.conf
-    echo "ORDS_BASE=$( dirname ${ords_path} )"                    >> /etc/ords.conf
-    echo "ORDS_CONFIG=${ORDS_CONFIG}"                             >> /etc/ords.conf
-    echo "SERVE_EXTRA_ARGS=--port ${ords_port} --secure"          >> /etc/ords.conf
-    chown oracle:oinstall /etc/ords.conf
-    chmod 750 /etc/ords.conf
+    if [ "${db_service}" == "__UNDEFINED__" ]; then
+        logMesg 1 "could not detect database name from config files." E "NONE" 
+        exit 1
+    fi 
 
-    # copy man pages
-    cp "${ords_path}"/linux-support/man/ords.1 /usr/share/man/man1/ords.1.gz
-    chmod 644 /usr/share/man/man1/ords.1.gz
-    chown root:root /usr/share/man/man1/ords.1.gz
-    cp "${ords_path}"/linux-support/man/ords.conf.5 /usr/share/man/man5/ords.conf.5.gz
-    chmod 644 /usr/share/man/man5/ords.conf.5.gz
-    chown root:root /usr/share/man/man5/ords.conf.5.gz
-    cp "${ords_path}"/linux-support/man/ords.service.8 /usr/share/man/man8/ords.service.8.gz
-    chmod 644 /usr/share/man/man8/ords.service.8.gz
-    chown root:root /usr/share/man/man8/ords.service.8.gz
+    # static defaults
+    ORDS_CONFIG=${ords_admin}/config
+    ords_logs=${ords_admin}/logs
+    db_host=$( hostname -f )
 
-    # create autostart
-    cp "${ords_path}"/linux-support/ords.sh /etc/init.d/ords
-    chown root:root /etc/init.d/ords
-    chmod 755 /etc/init.d/ords
-    cp "${ords_path}"/linux-support/ords.service /etc/systemd/system/ords.service
-    chown root:root /etc/systemd/system/ords.service
-    chmod 644 /etc/systemd/system/ords.service
-    ln -s "${ords_path}"/bin/ords /usr/local/bin/ords
+    # test information
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_path: $ords_path" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_admin: $ords_admin" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_logs: $ords_logs" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORDS_CONFIG: $ORDS_CONFIG" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_src: $ords_src" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_port: $ords_port" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "db_host: $db_host" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_lsnr_port: $ora_lsnr_port" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "db_service: $db_service" I "NONE" ; fi
+ 
+    # Lookup password for database
+    secret_name="db_all_${ora_db_sid}"
+    db_password=$( getSecret "db_all_${ora_db_sid}" )
+    if [ "$db_password" != "__UNDEFINED__" ]; then
+        logMesg 1 "Password not found for DB, secret: $secret_name" E "NONE" 
+        exit 1
+    fi
 
-    # fix autostart bugs
-    sed -i 's/_ords_base > 0/_ords_base -gt 0/g' /etc/init.d/ords
+    # check if the ORDS install file is there
+    if [ -f "${ords_src}" ]; then
 
-    # enable autostart
-    case "$( ps --no-headers -o comm 1 )" in
-        'systemd') 
-            systemctl enable ords
-            systemctl start ords
-            ;;
-        'init') 
-            chkconfig --add ords
-            service ords start
-            ;;
-        *) 
-            echo "ERROR autostart not supported on this platform"
-            echo "   You will need to manually start ORDS       "
-            ;;
-    esac
+        # install java if it is not arlready installed
+        #   Note lsof used by systemctl start script for ords
+        /usr/bin/yum -y install java-11-openjdk lsof
+        if (( $? > 0 )) ; then echo "ERROR could not install Java 11"; exit 1; fi
+ 
+        # create the target directories
+        [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
+        [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
+        [[ ! -d "${ORDS_CONFIG}" ]] && mkdir -p "${ORDS_CONFIG}"
+        [[ ! -d "${ords_logs}" ]] && mkdir -p "${ords_logs}"
+        /usr/bin/chown oracle:oinstall "${ords_path}"
+        /usr/bin/chown oracle:oinstall "${ords_admin}"
+        /usr/bin/chown oracle:oinstall "${ORDS_CONFIG}"
+        /usr/bin/chown oracle:oinstall "${ords_logs}"
+ 
+        # load the ORDS software
+        /usr/bin/unzip "${ords_src}" -d "${ords_path}"
+ 
+        # Install ORDS into the database
+        echo "ORDS CONFIG: ${ORDS_CONFIG}"
+        export ORDS_CONFIG
+        ords_features="--feature-sdw true --log-folder ${ords_logs}"
+        ords_db="--admin-user SYS --password-stdin --db-hostname ${db_host} --db-port ${ora_lsnr_port} --db-servicename ${db_service}"
+        ords_storage="--schema-tablespace SYSAUX --schema-temp-tablespace TEMP"
+        echo "ORDS COMMAND LINE: ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}"
+        /usr/bin/su oracle -c "echo ${db_password} | ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}"
+ 
+        # Configure ORDS standalone server
+        /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.host $( hostname -f )"
+        /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.port ${ords_port}"
+ 
+        # Configure ORDS auto start
+        # Create configuration file
+        #   Note ORDS_BASE is the directory under "ords" used by systemctl start
+        echo "# ORDS Service Script Configuration File (ords.config)" > /etc/ords.conf
+        echo "# Generated by oraORDS.sh $( date )"                    >> /etc/ords.conf
+        echo "ORDS_BASE=$( dirname ${ords_path} )"                    >> /etc/ords.conf
+        echo "ORDS_CONFIG=${ORDS_CONFIG}"                             >> /etc/ords.conf
+        echo "SERVE_EXTRA_ARGS=--port ${ords_port} --secure"          >> /etc/ords.conf
+        /usr/bin/chown oracle:oinstall /etc/ords.conf
+        /usr/bin/chmod 750 /etc/ords.conf
+ 
+        # copy man pages
+        /usr/bin/cp "${ords_path}"/linux-support/man/ords.1 /usr/share/man/man1/ords.1.gz
+        /usr/bin/chmod 644 /usr/share/man/man1/ords.1.gz
+        /usr/bin/chown root:root /usr/share/man/man1/ords.1.gz
+        /usr/bin/cp "${ords_path}"/linux-support/man/ords.conf.5 /usr/share/man/man5/ords.conf.5.gz
+        /usr/bin/chmod 644 /usr/share/man/man5/ords.conf.5.gz
+        /usr/bin/chown root:root /usr/share/man/man5/ords.conf.5.gz
+        /usr/bin/cp "${ords_path}"/linux-support/man/ords.service.8 /usr/share/man/man8/ords.service.8.gz
+        /usr/bin/chmod 644 /usr/share/man/man8/ords.service.8.gz
+        /usr/bin/chown root:root /usr/share/man/man8/ords.service.8.gz
+ 
+        # create autostart
+        /usr/bin/cp "${ords_path}"/linux-support/ords.sh /etc/init.d/ords
+        /usr/bin/chown root:root /etc/init.d/ords
+        /usr/bin/chmod 755 /etc/init.d/ords
+        /usr/bin/cp "${ords_path}"/linux-support/ords.service /etc/systemd/system/ords.service
+        /usr/bin/chown root:root /etc/systemd/system/ords.service
+        /usr/bin/chmod 644 /etc/systemd/system/ords.service
+        /usr/bin/ln -s "${ords_path}"/bin/ords /usr/local/bin/ords
+ 
+        # fix autostart bugs
+        sed -i 's/_ords_base > 0/_ords_base -gt 0/g' /etc/init.d/ords
+ 
+        # enable autostart
+        case "$( ps --no-headers -o comm 1 )" in
+            'systemd') 
+                systemctl enable ords
+                systemctl start ords
+                ;;
+            'init') 
+                chkconfig --add ords
+                service ords start
+                ;;
+            *) 
+                echo "ERROR autostart not supported on this platform"
+                echo "   You will need to manually start ORDS       "
+                ;;
+        esac
+ 
+        # configure firewall
+        /bin/firewall-cmd --permanent --zone=public --add-port=${ords_port}/tcp
+        /bin/firewall-cmd --reload
 
-    # configure firewall
-    /bin/firewall-cmd --permanent --zone=public --add-port=${ords_port}/tcp
-    /bin/firewall-cmd --reload
+    else
+        echo "ERROR! could not find ORDS install file at: ${ords_src}"
+        exit 1
+    fi
 
 else
-    echo "ERROR! could not find ORDS install file at: ${ords_src}"
+    echo "ERROR - invalid command line parameters" >&2
     exit 1
 fi
 
