@@ -57,6 +57,14 @@ if inListC "${build_steps}" "dbca"; then
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBCA.sh >> ${log_file}"
 fi
 
+# run database creation assistant (lsnr)
+if inListC "${build_steps}" "lsnr"; then
+    logMesg 0 "==== oraLsnr.sh (lsnr)" I "NONE"
+    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraLsnr.sh"
+    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraLsnr.sh"
+    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraLsnr.sh >> ${log_file}"
+fi
+
 # configure oracle user profile (cfg)
 if inListC "${build_steps}" "cfg"; then
     logMesg 0 "==== oraUsrCfg.sh (cfg)" I "NONE"

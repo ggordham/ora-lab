@@ -83,8 +83,8 @@ if checkopt_oraLsnr "$OPTIONS" ; then
 
     # check if a ORACLE_HOME and other settings, otherwise lookup default setting
     if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
-    if [ -z "${ora_lsnr_port:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port ); fi
-    if [ "${ora_lsnr_port}" == = "__UNDEFINED__" ]; then ora_home=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
+    if [ -z "${ora_lsnr_port:-}" ]; then ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port ); fi
+    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
 
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_lsnr_port: $ora_lsnr_port" I "NONE" ; fi
@@ -129,24 +129,23 @@ if checkopt_oraLsnr "$OPTIONS" ; then
     esac
 
     cat <<- EOF >> "${response_file}"
-        RESPONSEFILE_VERSION="21.0"
-        CREATE_TYPE="CUSTOM"
-        
-        [oracle.net.ca]
-        INSTALLED_COMPONENTS={"server","net8","javavm"}
-        INSTALL_TYPE=""typical""
-        LISTENER_NUMBER=1
-        LISTENER_NAMES={"LISTENER"}
-        LISTENER_PROTOCOLS={"TCP;${ora_lsnr_port}"}
-        LISTENER_START=""LISTENER""
-        NAMING_METHODS={"TNSNAMES","ONAMES","HOSTNAME"}
-        
-        # TNS entries to create
-        NSN_NUMBER=0
-        NSN_NAMES={"EXTPROC_CONNECTION_DATA"}
-        NSN_SERVICE={"PLSExtProc"}
-        NSN_PROTOCOLS={"TCP;HOSTNAME;1521"}
-    EOF
+CREATE_TYPE="CUSTOM"
+
+[oracle.net.ca]
+INSTALLED_COMPONENTS={"server","net8","javavm"}
+INSTALL_TYPE=""typical""
+LISTENER_NUMBER=1
+LISTENER_NAMES={"LISTENER"}
+LISTENER_PROTOCOLS={"TCP;${ora_lsnr_port}"}
+LISTENER_START=""LISTENER""
+NAMING_METHODS={"TNSNAMES","ONAMES","HOSTNAME"}
+
+# TNS entries to create
+NSN_NUMBER=0
+NSN_NAMES={"EXTPROC_CONNECTION_DATA"}
+NSN_SERVICE={"PLSExtProc"}
+NSN_PROTOCOLS={"TCP;HOSTNAME;${ora_lsnr_port}"}
+EOF
 
     # run NETCA 
     netca_options=" -silent"
