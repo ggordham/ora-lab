@@ -9,42 +9,144 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-env_name=t1db
-db_name=pdb1
+# Default config information if not passed on command line
+CONF_FILE="${SCRIPTDIR}"/server.conf
+DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
 
-stg_dir=/u01/app/oracle/stage
-samp_schema_url=https://github.com/oracle/db-sample-schemas
-app_dir=examples
-tgt_dir="${stg_dir}/${app_dir}"
+# retun command line help information
+function help_oraDBSamp {
+  echo >&2
+  echo "$SCRIPTNAME                                    " >&2
+  echo "   Install and setup Oracle Rest Data Services " >&2
+  echo "   version: $SCRIPTVER                         " >&2
+  echo >&2
+  echo "Usage: $SCRIPTNAME [-h --debug --test ]         " >&2
+  echo "-h          give this help screen               " >&2
+  echo "--datatbs [Data Tablespace]                     " >&2
+  echo "--temptbs [Temp Tablespace]                     " >&2
+  echo "--stgdir  [Staging Directory]                   " >&2
+  echo "--debug     turn on debug mode                  " >&2
+  echo "--test      turn on test mode                   " >&2
+  echo "--version | -v Show the script version          " >&2
+}
 
-sys_password=xxxx
-system_password=xxxx
-samp_password=xxxx
+#check command line options
+function checkopt_oraDBSamp {
+    #set defaults
+    DEBUG=FALSE
+    TEST=FALSE
+    typeset -i badopt=0
 
-samp_tablespace=USERS
-samp_temp=TEMP
+    # shellcheck disable=SC2068
+    my_opts=$(getopt -o hv --long debug,test,version,stgdir:,datatbs:,temptbs -n "$SCRIPTNAME" -- $@)
+    if (( $? > 0 )); then
+        (( badopt=1 ))
+    else
+        eval set -- "$my_opts"
+        while true; do
+            case $1 in
+               "-h") help_oraDBCA                          #  help
+                     exit 1;;
+          "--stgdir") stg_dir="$2"
+                     shift 2;;
+          "--datatbs") samp_tablespace="$2"
+                     shift 2;;
+          "--temptbs") samp_temp="$2"
+                     shift 2;;
+          "--debug") DEBUG=TRUE                         # debug mode
+                     set -x
+                     shift ;;
+           "--test") TEST=TRUE                           # test mode
+                     shift ;;
+           "--version"|"-v") echo "$SCRIPTNAME version: $SCRIPTVER" >&2
+                     exit 0;;
+                "--") shift; break;;                             # finish parsing
+                  *) echo "ERROR! Bad command line option passed: $1"
+                     (( badopt=1 ))
+                     break ;;                                    # unknown flag
+        esac
+    done
+  fi
 
-connect_string=localhost:1521/${db_name}
+  return $badopt
 
-# setup Oracle environment
-export ORACLE_SID=$env_name
-export ORAENV_ASK=NO
+}
 
-source /usr/local/bin/oraenv -s
+############################################################################################
+# start here
 
+# verify that we are root to run this script
+if [ "x$USER" != "xoracle" ];then logMesg 1 "You must be logged in as oracle to run this script" E "NONE"; exit 1; fi
 
-# Make sure the staging directory is created
-[ ! -d "${tgt_dir}" ] && mkdir -p "${tgt_dir}"
+OPTIONS=$@
 
-# download the source files
-curl -L "${samp_schema_url}/tarball/main" | tar xz --strip=1 -C "${tgt_dir}" 
+if checkopt_oraDBSamp "$OPTIONS" ; then
 
-# update path in scripts to target directory
-find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;
+    logMesg 0 "${SCRIPTNAME} start" I "NONE"
+    if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
-cd "${tgt_dir}" || echo "Error, could not find directory: ${tgt_dir}"
+    # setup staging directory
+    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGet "$CONF_FILE" srvr_stg_dir ); fi
+    if [ "${stg_dir}" == "__UNDEFINED__" ]; then stg_dir=$( cfgGet "$DEF_CONF_FILE" stg_dir ); fi
+    logMesg 0 "Making staging directory: $stg_dir" I "NONE"
+    [ ! -d "${stg_dir}" ] && /usr/bin/mkdir -p "${stg_dir}"
+    tgt_dir="${stg_dir}/examples"
+    logMesg 0 "Making target directory: $tgt_dir" I "NONE"
+    [ ! -d "${tgt_dir}" ] && /usr/bin/mkdir -p "${tgt_dir}"
+    if [ ! -d "${tgt_dir}" ]; then 
+        logMesg 1 "could not access stage directory: $tgt_dir" E "NONE" 
+        exit 1
+    fi 
 
-"${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
+    # Get sample schema download URL
+    samp_schema_url=$( cfgGet "$DEF_CONF_FILE" samp_schema_url )
+    if [ "${samp_schema_url}" == "__UNDEFINED__" ]; then 
+        logMesg 1 "could not load samp_schema_url from config file: $DEF_CONF_FILE" E "NONE" 
+        exit 1
+    fi 
+
+    # decide on what SID or PDB to use for install
+    ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
+    ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
+
+    if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
+        logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
+        db_name="${ora_db_sid}"
+    else
+        db_name="${ora_db_pdb}"
+    fi
+
+    # get server specific settings for Listener
+    ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port )
+    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
+    connect_string="localhost:${ora_lsnr_port}/${db_name}"
+
+    # setup Oracle environment
+    export ORACLE_SID="{$ora_db_sid}"
+    export ORAENV_ASK=NO
+    source /usr/local/bin/oraenv -s
+
+    # look for tablespaces to use for sample schema install
+    if [ -z "${samp_tablespace:-}" ]; then samp_tablespace=$( cfgGet "$CONF_FILE" srvr_samp_tablespace ); fi
+    if [ "${samp_tablespace}" == "__UNDEFINED__" ]; then samp_tablespace=$( cfgGet "$DEF_CONF_FILE" samp_tablespace ); fi
+    if [ -z "${samp_temp:-}" ]; then samp_temp=$( cfgGet "$CONF_FILE" srvr_samp_temp ); fi
+    if [ "${samp_temp}" == "__UNDEFINED__" ]; then samp_temp=$( cfgGet "$DEF_CONF_FILE" samp_temp ); fi
+
+    # load passwords
+    sys_password=$( getSecret "db_all_${ora_db_sid}" )
+    system_password=$( getSecret "db_all_${ora_db_sid}" )
+    samp_password=$( getSecret "db_all_${ora_db_sid}" )
+
+    # download the source files
+    /usr/bin/curl -L "${samp_schema_url}/tarball/main" | tar xz --strip=1 -C "${tgt_dir}" 
+
+    # update path in scripts to target directory
+    /usr/bin/find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;
+
+    cd "${tgt_dir}" || echo "Error, could not find directory: ${tgt_dir}"
+    
+    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
 
 SET ECHO ON
 WHENEVER sqlerror EXIT sql.sqlcode;
@@ -56,18 +158,18 @@ WHENEVER sqlerror CONTINUE;
 @mksample ${system_password} ${sys_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_tablespace} ${samp_temp} ${tgt_dir}/log ${connect_string}
 
 !EOF
-return_code=$?
-# lets see if there was an error, and clean up so we can re-run
-if (( return_code > 0 )); then 
-    echo "sample schema SQLPLUS return code: $return_code"
-    /usr/bin/rm -rf "${tgt_dir}"
-    exit ${return_code}
-fi
+    return_code=$?
+    # lets see if there was an error, and clean up so we can re-run
+    if (( return_code > 0 )); then 
+        echo "sample schema SQLPLUS return code: $return_code"
+        /usr/bin/rm -rf "${tgt_dir}"
+        exit ${return_code}
+    fi
+    
+    # install the customer order schema
+    cd "${tgt_dir}/customer_orders" || echo "Error, could not find directory: ${tgt_dir}/customer_orders"
 
-# install the customer order schema
-cd "${tgt_dir}/customer_orders" || echo "Error, could not find directory: ${tgt_dir}/customer_orders"
-
-"${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
+    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
 
 SET ECHO ON
 WHENEVER sqlerror EXIT sql.sqlcode;
@@ -78,9 +180,13 @@ WHENEVER sqlerror CONTINUE;
 @co_main ${samp_password} ${connect_string} ${samp_tablespace} ${samp_temp}
 
 !EOF
-return_code=$?
+    return_code=$?
 
-echo "customer orders SQLPLUS return code: $return_code"
-exit ${return_code}
+    echo "customer orders SQLPLUS return code: $return_code"
+    exit ${return_code}
+else
+    echo "ERROR - invalid command line parameters" >&2
+    exit 1
+fi
 
 # END 

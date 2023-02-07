@@ -65,6 +65,20 @@ if inListC "${build_steps}" "lsnr"; then
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraLsnr.sh >> ${log_file}"
 fi
 
+# Install Oracle Rest Data Services (ords)
+if inListC "${build_steps}" "ords"; then
+    logMesg 0 "==== oraORDS.sh (ords)" I "NONE"
+    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraORDS.sh >> ${log_file}"
+fi
+
+# Install Oracle database sample schemas (samp)
+if inListC "${build_steps}" "samp"; then
+    logMesg 0 "==== oraDBSamp.sh (samp)" I "NONE"
+    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraDBSamp.sh"
+    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraDBSamp.sh"
+    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBSamp.sh >> ${log_file}"
+fi
+
 # configure oracle user profile (cfg)
 if inListC "${build_steps}" "cfg"; then
     logMesg 0 "==== oraUsrCfg.sh (cfg)" I "NONE"
