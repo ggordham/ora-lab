@@ -63,6 +63,19 @@ if inListC "${build_steps}" "lsnr"; then
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraLsnr.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraLsnr.sh"
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraLsnr.sh >> ${log_file}"
+
+    # create TNS entires
+    # decide on what SID or PDB to use for install
+    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraTNS.sh"
+    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraTNS.sh"
+    ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
+    ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
+    logMesg 0 "==== oraTNS.sh for $ora_db_sid" I "NONE"
+    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraTNS.sh --dbservice ${ora_db_sid} >> ${log_file}"
+    if [ "${ora_db_pdb}" != "__UNDEFINED__" ] || [ -n "${db_db_pdb:-}" ] ; then
+        logMesg 0 "==== oraTNS.sh for $ora_db_pdb" I "NONE"
+        /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraTNS.sh --dbservice ${ora_db_pdb} >> ${log_file}"
+    fi 
 fi
 
 # wait for listner registation

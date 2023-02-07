@@ -156,4 +156,35 @@ getSecret() {
 
 }
 
+# function to add TNS entry to a file
+# usage:  mk_oratns tnsfile db_service fqdn port
+#  Note: assumes TCP protocol
+function mk_oratns() {
+
+  # grab passed parameters
+  local my_tnsfile=$1
+  local my_db_service=$2
+  local my_fqdn=$3
+  local my_port=$4
+
+  # assume things will work
+  local my_resultc=0
+
+  if [[ -f "${my_tnsfile}" ]]; then
+    # Add to the tnsfile
+    timestamp=$(date +%Y%m%d-%H%m%S)
+    # shellcheck disable=SC2129
+    echo -e "\\n## added by ORALAB scripts on ${timestamp}" >> "${my_tnsfile}"
+    echo -e "\\n${my_db_service} = \\n    (DESCRIPTION = \\n        (ADDRESS_LIST = " >> "${my_tnsfile}"
+    echo -e "            (ADDRESS = (PROTOCOL = TCP)(HOST = ${my_fqdn})(PORT = ${my_port}))" >> "${my_tnsfile}"
+    echo -e "        ) \\n    (CONNECT_DATA = \\n        (SERVICE_NAME = ${my_db_service}) \\n        ) \\n    ) " >> "${my_tnsfile}"
+  else
+    my_resultc=1
+  fi
+
+  # exit with return status
+  return $my_resultc
+
+}
+
 # END
