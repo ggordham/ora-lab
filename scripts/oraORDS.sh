@@ -123,6 +123,7 @@ if checkopt_oraORDS "$OPTIONS" ; then
         logMesg 1 "could not detect database name from config files." E "NONE" 
         exit 1
     fi 
+    logMesg "Installing ORDS in DB: $db_service" I "NONE"
 
     # static defaults
     ORDS_CONFIG=${ords_admin}/config
@@ -170,15 +171,16 @@ if checkopt_oraORDS "$OPTIONS" ; then
         /usr/bin/unzip "${ords_src}" -d "${ords_path}"
  
         # Install ORDS into the database
-        echo "ORDS CONFIG: ${ORDS_CONFIG}"
+        logMesg "ORDS CONFIG: ${ORDS_CONFIG}" I "NONE"
         export ORDS_CONFIG
         ords_features="--feature-sdw true --log-folder ${ords_logs}"
         ords_db="--admin-user SYS --password-stdin --db-hostname ${db_host} --db-port ${ora_lsnr_port} --db-servicename ${db_service}"
         ords_storage="--schema-tablespace SYSAUX --schema-temp-tablespace TEMP"
-        echo "ORDS COMMAND LINE: ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}"
+        logMesg "ORDS COMMAND LINE: ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}" I "NONE"
         /usr/bin/su oracle -c "echo ${db_password} | ${ords_path}/bin/ords install ${ords_features} ${ords_db} ${ords_storage}"
  
         # Configure ORDS standalone server
+        logMesg "Configuring ORDS server on port $ords_port" I "NONE"
         /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.host $( hostname -f )"
         /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.port ${ords_port}"
  
@@ -192,6 +194,7 @@ if checkopt_oraORDS "$OPTIONS" ; then
         echo "SERVE_EXTRA_ARGS=--port ${ords_port} --secure"          >> /etc/ords.conf
         /usr/bin/chown oracle:oinstall /etc/ords.conf
         /usr/bin/chmod 750 /etc/ords.conf
+        logMesg "Configureing ORDS autostart with config file at: /etc/ords.conf" I "NONE"
  
         # copy man pages
         /usr/bin/cp "${ords_path}"/linux-support/man/ords.1 /usr/share/man/man1/ords.1.gz
@@ -233,6 +236,7 @@ if checkopt_oraORDS "$OPTIONS" ; then
         esac
  
         # configure firewall
+        logMesg "Configuring firewall for port $ords_port" I "NONE"
         /bin/firewall-cmd --permanent --zone=public --add-port="${ords_port}/tcp"
         /bin/firewall-cmd --reload
 
