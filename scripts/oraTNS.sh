@@ -70,7 +70,7 @@ function checkopt_oraTNS {
   fi
 
   # check for required command line options
-  if [ -z "${or_db_sid:-}" ]; then
+  if [ -z "${ora_db_sid:-}" ]; then
      echo "ERROR! Required option --dbservice not provided"
      (( badopt=1 ))
   fi
@@ -97,19 +97,38 @@ if checkopt_oraTNS "$OPTIONS" ; then
     if [ -z "${ora_lsnr_port:-}" ]; then ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port ); fi
     if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
 
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_lsnr_port: $ora_lsnr_port" I "NONE" ; fi
+ 
     # Setup Oracle environment
     ORACLE_HOME="$ora_home"
     ORACLE_BASE=$( "${ORACLE_HOME}/bin/orabase" )
     LD_LIBRARY_PATH=${ORACLE_HOME}/lib
     export ORACLE_HOME ORACLE_BASE LD_LIBRARY_PATH
 
-    if [ -x "$ORACLE_HOME"/bin/orabasehome ]; then tns_base=$( "$ORACLE_HOME"/bin/orabasehome )
-    else tns_base="$ORACLE_HOME"; fi
-
-    tns_file="${tns_base}/network/admin/tnsnames.ora"
+    # Identify the proper TNS file
+    if [ -z "${tns_file:-}" ]; then
+        # check for readonly Oracle Home
+        if [ -x "$ORACLE_HOME"/bin/orabasehome ]; then tns_base=$( "$ORACLE_HOME"/bin/orabasehome )
+        else tns_base="$ORACLE_HOME"; fi
+        tns_file="${tns_base}/network/admin/tnsnames.ora"
+        if [ "$TEST" == "TRUE" ]; then logMesg 0 "tns_base: $tns_base" I "NONE" ; fi
+    fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "tns_file: $tns_file" I "NONE" ; fi
 
     # create TNS entires
-    mk_oratns "${tns_file}" "${ora_db_sid}" "$( /bin/hostname -f )" "${ora_lsnr_port}"
+    if [ "$TEST" == "TRUE" ]; then
+        logMesg 0 "Test mode not running: mk_oratns ${tns_file} ${ora_db_sid} $( /bin/hostname -f ) ${ora_lsnr_port}" I "NONE"
+    else
+        logMesg 0 "Updating TNS file: $tns_file" I "NONE"
+        [ ! -f "${tns_file}" ] && /usr/bin/touch "${tns_file}"
+        mk_oratns "${tns_file}" "${ora_db_sid}" "$( /bin/hostname -f )" "${ora_lsnr_port}"
+        return_code=$?
+    fi
+
+    if (( return_code > 0 )); then logMesg 1 "Error creating TNS entry!" E "NONE"; 
+    else logMesg 0 "TNS entry for $ora_db_sid created."; fi
+    exit $return_code
 else
     echo "ERROR - invalid command line parameters" >&2
     exit 1
