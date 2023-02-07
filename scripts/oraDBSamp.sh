@@ -114,6 +114,7 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
         logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
         db_name="${ora_db_sid}"
     else
+        logMesg 0 "PDB defined, installing into: $ora_db_pdb" I "NONE"
         db_name="${ora_db_pdb}"
     fi
 
@@ -123,7 +124,8 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     connect_string="localhost:${ora_lsnr_port}/${db_name}"
 
     # setup Oracle environment
-    export ORACLE_SID="{$ora_db_sid}"
+    logMesg 0 "setting Oracle enviorment for home: $ora_db_sid" I "NONE"
+    export ORACLE_SID="${ora_db_sid}"
     export ORAENV_ASK=NO
     source /usr/local/bin/oraenv -s
 

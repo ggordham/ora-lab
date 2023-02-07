@@ -65,6 +65,10 @@ if inListC "${build_steps}" "lsnr"; then
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraLsnr.sh >> ${log_file}"
 fi
 
+# wait for listner registation
+logMesg 0 "==== sleep for 60 seconds to allow Listener registration" I "NONE"
+/bin/sleep 60
+
 # Install Oracle Rest Data Services (ords)
 if inListC "${build_steps}" "ords"; then
     logMesg 0 "==== oraORDS.sh (ords)" I "NONE"
