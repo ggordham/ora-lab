@@ -14,8 +14,11 @@
 # FUNCTIONS in this Library:
 #  logMesg CODE TEXT [I|W|E] FILE
 #  cfgGet FILE CFG_NAME
-
-DEBUG=Y
+#  inList "A B C D" "B"
+#  inListC "A,B,C,D" "B"
+#  trim " ab cd "
+#  getSecret "my_secret"
+#  mk_oratns tnsfile db_service fqdn port
 
 # set parameters to exit on unbound variable and return any error in pipe
 set -uo pipefail
@@ -85,9 +88,9 @@ cfgGet() {
         if [ -r "${conf_file}" ]; then
 
             conf_set=$( grep -E "^${conf_name}=" -m 1 "${conf_file}" 2>/dev/null || echo "VAR=__UNDEFINED__" )
-            if [ "$DEBUG" == "Y" ]; then echo "conf_set: ${conf_set}" >&2; fi
+            if [ "$DEBUG" == "TRUE" ]; then echo "conf_set: ${conf_set}" >&2; fi
             conf_val=$( echo "${conf_set}" |  head -n 1 | cut -d '=' -f 2-; )
-            if [ "$DEBUG" == "Y" ]; then echo "conf_val: ${conf_val}" >&2; fi
+            if [ "$DEBUG" == "TRUE" ]; then echo "conf_val: ${conf_val}" >&2; fi
             printf -- "%s" "${conf_val}";
         else
             echo "INTERNAL ERROR: can not read configuration file $conf_file" >&2
@@ -131,6 +134,7 @@ function inListC {
 
 # simple function to remove whitespace from front and back of a string
 #   Will not remove space between words / characters
+#   usage  trim " ab cd "
 trim() {
     local var="$*"
     # remove leading whitespace characters
@@ -143,15 +147,16 @@ trim() {
 # function to retreive secret.
 #   current version looks in secure.conf file
 #   Future version should support a secrets vault
+#   usage  getSecret "my_secret"
 getSecret() {
 
-    local my_secret_file=${SCRIPTDIR}/secure.conf
+    local my_secret_file="${SCRIPTDIR}/secure.conf"
      # check that we had 1 command line option
     if [ "$#" -eq 1 ]; then
-        local my_secret_name=$1
+        local my_secret_name="$1"
         local my_secret_data
-        my_secret_data=$( cfgGet "${my_secret_file}" "$my_secret_name}" )
-        printf -- "%s" "${my_secret_data}";
+        my_secret_data=$( cfgGet "${my_secret_file}" "${my_secret_name}" )
+        printf -- "%s" "${my_secret_data}"
     fi
 
 }

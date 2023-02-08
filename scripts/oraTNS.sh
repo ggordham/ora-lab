@@ -127,7 +127,7 @@ if checkopt_oraTNS "$OPTIONS" ; then
     fi
 
     if (( return_code > 0 )); then logMesg 1 "Error creating TNS entry!" E "NONE"
-    else logMesg 0 "TNS entry for $ora_db_sid created."; fi
+    else logMesg 0 "TNS entry for $ora_db_sid created." I "NONE"; fi
     exit $return_code
 else
     echo "ERROR - invalid command line parameters" >&2
