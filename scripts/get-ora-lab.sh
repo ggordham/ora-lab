@@ -5,7 +5,8 @@
 # Very simple script to call during VM build to pull down the required
 #  ora-lab scripts for a VM
 # Script is stand alone so some redundancy here to make work in place
-
+# version 1.0
+#
 repo_url=https://github.com/ggordham/ora-lab
 package_root=ggordham-ora-lab
 target=scripts
