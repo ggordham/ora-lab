@@ -58,7 +58,7 @@ done
 
 # install the ora-lab run script for after reboot
 echo "Installing runonce script: ${target_path}/scripts/tstOraInst.sh" >> "${log_file}"
-"${target_path}"/scripts/runonce.sh "${target_path}/scripts/tstOraInst.sh"
+"${target_path}"/scripts/runonce.sh "${target_path}/scripts/tstOraInst.sh" >> "${log_file}" 2>&1 
 
 # reboot after cloud-init is finished
 #  Be sure to exit 0 for terraform to get good status
