@@ -126,7 +126,7 @@ if checkopt_oraTNS "$OPTIONS" ; then
         return_code=$?
     fi
 
-    if (( return_code > 0 )); then logMesg 1 "Error creating TNS entry!" E "NONE"; 
+    if (( return_code > 0 )); then logMesg 1 "Error creating TNS entry!" E "NONE"
     else logMesg 0 "TNS entry for $ora_db_sid created."; fi
     exit $return_code
 else

@@ -54,7 +54,7 @@ if inListC "${build_steps}" "dbca"; then
     logMesg 0 "==== oraDBCA.sh (dbca)" I "NONE"
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraDBCA.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraDBCA.sh"
-    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBCA.sh >> ${log_file}"
+    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBCA.sh --insecure >> ${log_file}"
 fi
 
 # run database creation assistant (lsnr)

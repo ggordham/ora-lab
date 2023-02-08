@@ -23,6 +23,7 @@ function help_oraDBCA {
   echo "--dbsid   [DB SID]                              " >&2
   echo "--dbtype  [DB type CDB|NCDB]                    " >&2
   echo "--dbpdb   [DB pdb name for CDB only]            " >&2
+  echo "--insecure do not remove passwords from response file" >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
@@ -37,7 +38,7 @@ function checkopt_oraDBCA {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,datadir:,dbsid:,dbtype:,dbpdb:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,insecure,datadir:,dbsid:,dbtype:,dbpdb:,orahome: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -56,6 +57,8 @@ function checkopt_oraDBCA {
                      shift 2;;
           "--orahome") ora_home="$2"
                      shift 2;;
+           "--insecure") INSECURE=TRUE                           # test mode
+                     shift ;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
                      shift ;;
@@ -270,7 +273,11 @@ EOF
     #
 
     # remove passwords from response file
-    sed -i "s/${db_password}/XXXXXXXX/g" "${response_file}"
+    if [ "$INSECURE" == "TRUE" ]; then
+        logMesg 0 "Insecure option, leaving passwords in response file." I "NONE"
+    else
+        /bin/sed -i "s/${db_password}/XXXXXXXX/g" "${response_file}"
+    fi
 
 else
     echo "ERROR - invalid command line parameters" >&2
