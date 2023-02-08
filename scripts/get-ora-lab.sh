@@ -11,6 +11,12 @@ package_root=ggordham-ora-lab
 target=scripts
 target_path=/opt/ora-lab
 log_file=/tmp/get-ora-lab.log
+cur_user=$( /usr/bin/id -un )
+cur_group=$( /usr/bin/id -gn )
+
+echo "===== get-ora-lab.sh " >> "${log_file}"
+echo "  running as user: $cur_user " >> "${log_file}"
+echo "  running as group: $cur_group " >> "${log_file}"
 
 trim() {
     local var="$*"
@@ -22,7 +28,7 @@ trim() {
 }
 
 # Verify tar RPM is installed
-if ! rpm -q --quiet tar; then
+if ! /usr/bin/rpm -q --quiet tar; then
     if [ -x /usr/bin/dnf ]; then 
         /usr/bin/sudo /usr/bin/dnf -y install tar | /usr/bin/tee -a "${log_file}"
     elif [ -x /usr/bin/yum ]; then
@@ -35,9 +41,11 @@ fi
 
 # make the target directory for ora-lab
 [[ ! -d "${target_path}" ]] && sudo /usr/bin/mkdir "${target_path}"
-sudo /usr/bin/chown cloud-user:cloud-user "${target_path}"
+sudo /usr/bin/chown "${cur_user}" "${target_path}"
+sudo /usr/bin/chgrp "${cur_group}" "${target_path}"
 
 # download the ora-lab scripts
+echo "Downloading ora-lab scripts from: ${repo_url}/scripts/tstOraInst.sh" >> "${log_file}"
 /usr/bin/curl -L ${repo_url}/tarball/main | tar xz -C "${target_path}" --strip=1 "${package_root}-???????/${target}"  | /usr/bin/tee -a "${log_file}"
 /usr/bin/find ${target_path} -name \*.sh -exec /usr/bin/chmod 754 {} \;
 
@@ -48,7 +56,8 @@ while [ ! "$( trim "$( /usr/bin/sudo /usr/bin/cloud-init status | /usr/bin/cut -
 done
 
 # install the ora-lab run script for after reboot
-${target_path}/scripts/runonce.sh "${target_path}/scripts/tstOraInst.sh"
+echo "Installing runonce script: ${target_path}/scripts/tstOraInst.sh" >> "${log_file}"
+"${target_path}"/scripts/runonce.sh "${target_path}/scripts/tstOraInst.sh"
 
 # reboot after cloud-init is finished
 #  Be sure to exit 0 for terraform to get good status
