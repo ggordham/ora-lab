@@ -143,8 +143,8 @@ if checkopt_oraORDS "$OPTIONS" ; then
  
     # Lookup password for database
     secret_name="db_all_${ora_db_sid}"
-    db_password=$( getSecret "db_all_${ora_db_sid}" )
-    if [ "$db_password" != "__UNDEFINED__" ]; then
+    db_password=$( getSecret "${secret_name}" )
+    if [ "$db_password" == "__UNDEFINED__" ]; then
         logMesg 1 "Password not found for DB, secret: $secret_name" E "NONE" 
         exit 1
     fi

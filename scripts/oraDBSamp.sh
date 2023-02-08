@@ -136,9 +136,16 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     if [ "${samp_temp}" == "__UNDEFINED__" ]; then samp_temp=$( cfgGet "$DEF_CONF_FILE" samp_temp ); fi
 
     # load passwords
-    sys_password=$( getSecret "db_all_${ora_db_sid}" )
-    system_password=$( getSecret "db_all_${ora_db_sid}" )
-    samp_password=$( getSecret "db_all_${ora_db_sid}" )
+    # Lookup password for database note we use the SID name for now
+    secret_name="db_all_${ora_db_sid}"
+    db_password=$( getSecret "${secret_name}" )
+    if [ "$db_password" == "__UNDEFINED__" ]; then
+        logMesg 1 "Password not found for DB, secret: $secret_name" E "NONE" 
+        exit 1
+    fi
+    sys_password="${db_password}"
+    system_password="${db_password}"
+    samp_password="${db_password}"
 
     # download the source files
     /usr/bin/curl -L "${samp_schema_url}/tarball/main" | tar xz --strip=1 -C "${tgt_dir}" 
