@@ -7,12 +7,11 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-echo "===============================================================" >> "${log_file}"
-
 # setup log file location
 log_path="$( dirname "${SCRIPTDIR}" )"/log
 [[ ! -d "${log_path}" ]] && /usr/bin/mkdir -p "${log_path}"
 log_file="${log_path}/tstOraInst-$( date +%Y%m%d-%H%M%S ).log"
+echo "===============================================================" >> "${log_file}"
 logMesg 0 "==== Log File: ${log_file}" I "${log_file}"
 
 # Load configuration information from server specific configuration file
