@@ -29,6 +29,9 @@ SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Create a very static path
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin:$SCRIPTDIR"
 
+# Default DEBUG setting
+if [ -z "${DEBUG:-}" ]; then DEBUG=FALSE; fi
+
 # function to log messages
 #   logMesg CODE TEXT [I|W|E] FILE
 #     returns the mesg_code that was passed in or 255 for internal error
