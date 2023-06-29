@@ -26,6 +26,7 @@ function help_oraLnxPre {
   echo "-h          give this help screen               " >&2
   echo "--disks [list of disks to format+mount]         " >&2
   echo "--dfs   [disk fs type]                          " >&2
+  echo "--sftno  Disables mounting NFS of software media" >&2
   echo "--sftt  [Software mount type]                   " >&2
   echo "--sftm  [Software mount point]                  " >&2
   echo "--sfts  [Software source]                       " >&2
@@ -43,10 +44,11 @@ function checkopt_oraLnxPre {
     #set defaults
     DEBUG=FALSE
     TEST=FALSE
+    SFT_MOUNT=TRUE
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,sftno,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -65,6 +67,8 @@ function checkopt_oraLnxPre {
                      shift 2;;
           "--sfts") sft_source="$2"
                      shift 2;;
+          "--sftno") SFT_MOUNT=FALSE
+                     shift ;;
            "--lsnp") lsnr_port="$2"
                      shift 2;;
            "--pkgs") lnx_pkgs="$2"
@@ -132,6 +136,11 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         fi
     done
 
+    # Setup ownership for directories (future work
+    #ora_base
+    #srvr_ora_base
+    #ora_db_data
+
     # install required packages
     if [ "${lnx_pkgs}" == "" ]; then
         logMesg 0 "No extra Linux packages to install." I "NONE"
@@ -155,14 +164,18 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     sudo sh -c "/bin/firewall-cmd --reload"
 
     # Setup software mount
-    logMesg 0 "Setting up software mount: $sft_mount" I "NONE"
-    fs_opts="ro,_netdev 0 0"
-    logMesg 0 "Updating fstab" I "NONE"
-    echo "${sft_source} ${sft_mount} ${sft_type} ${fs_opts}" | sudo tee -a /etc/fstab
-    sudo sh -c "/bin/mkdir ${sft_mount}"
-    sudo sh -c "/bin/mount ${sft_mount}"
-    if /bin/mountpoint "${sft_mount}"; then logMesg 0 "Sucess mounting: ${sft_mount}" I "NONE"
-    else logMesg 1 "Faild to mount: $sft_mount" E "NONE"; exit 1; fi
+    if [ "$SFT_MOUNT" == "TRUE" ]; then
+        logMesg 0 "Setting up software mount: $sft_mount" I "NONE"
+        fs_opts="ro,_netdev 0 0"
+        logMesg 0 "Updating fstab" I "NONE"
+        echo "${sft_source} ${sft_mount} ${sft_type} ${fs_opts}" | sudo tee -a /etc/fstab
+        sudo sh -c "/bin/mkdir ${sft_mount}"
+        sudo sh -c "/bin/mount ${sft_mount}"
+        if /bin/mountpoint "${sft_mount}"; then logMesg 0 "Sucess mounting: ${sft_mount}" I "NONE"
+        else logMesg 1 "Faild to mount: $sft_mount" E "NONE"; exit 1; fi
+    else
+        logMesg 0 "Software Mount disabled with option --sftno" I "NONE";
+    fi
 
     logMesg 0 "oraLnxPre.sh finished" I "NONE"
 

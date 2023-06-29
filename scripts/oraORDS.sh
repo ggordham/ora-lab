@@ -27,6 +27,7 @@ function help_oraORDS {
   echo "--ordssrc   [ORDS Source zip file]              " >&2
   echo "--ordsport  [ORDS port]                         " >&2
   echo "--pdbonly   install ORDS in PDB only not CDB    " >&2
+  echo "--httpsno   disable HTTPS configuration         " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode                   " >&2
   echo "--version | -v Show the script version          " >&2
@@ -38,10 +39,11 @@ function checkopt_oraORDS {
     #set defaults
     DEBUG=FALSE
     TEST=FALSE
+    HTTPS=TRUE
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,pdbonly,ordspath:,ordsadmin:,ordssrc:,ordsport: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,pdbonly,httpsno,ordspath:,ordsadmin:,ordssrc:,ordsport: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -59,6 +61,8 @@ function checkopt_oraORDS {
           "--odspath") ords_path="$2"
                      shift 2;;
           "--pdbonly") srvr_ords_pdbonly=TRUE 
+                     shift ;;
+          "--httpsno") HTTPS=FALSE 
                      shift ;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
@@ -156,7 +160,12 @@ if checkopt_oraORDS "$OPTIONS" ; then
         #   Note lsof used by systemctl start script for ords
         /usr/bin/yum -y install java-11-openjdk lsof
         if (( $? > 0 )) ; then echo "ERROR could not install Java 11"; exit 1; fi
- 
+
+        # Set the Java environment, make sure select java is first in path
+        JAVA_HOME=$( /usr/sbin/alternatives --list | /usr/bin/grep jre_11_openjdk | /usr/bin/cut -f3 )
+        export JAVA_HOME
+        export PATH=${JAVA_HOME}/bin:$PATH
+
         # create the target directories
         [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
         [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
@@ -181,9 +190,17 @@ if checkopt_oraORDS "$OPTIONS" ; then
  
         # Configure ORDS standalone server
         logMesg "Configuring ORDS server on port $ords_port" I "NONE"
-        /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.host $( hostname -f )"
-        /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.port ${ords_port}"
- 
+        if [ "$HTTPS" == "TRUE" ]; then 
+            logMesg 0 "Configuring HTTPS https://$( hostname -f):${ords_port}" I "NONE" 
+            /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.host $( hostname -f )"
+            /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.https.port ${ords_port}"
+        else
+            logMesg 0 "Configuring HTTP http://$( hostname -f):${ords_port}" I "NONE" 
+            /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.http.port ${ords_port}"
+        fi
+        /usr/bin/su oracle -c "${ords_path}/bin/ords config config set --global db.serviceNameSuffix \"\" "
+        /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.access.log /var/log/ords"
+
         # Configure ORDS auto start
         # Create configuration file
         #   Note ORDS_BASE is the directory under "ords" used by systemctl start
@@ -192,6 +209,7 @@ if checkopt_oraORDS "$OPTIONS" ; then
         echo "ORDS_BASE=$( dirname "${ords_path}" )"                  >> /etc/ords.conf
         echo "ORDS_CONFIG=${ORDS_CONFIG}"                             >> /etc/ords.conf
         echo "SERVE_EXTRA_ARGS=--port ${ords_port} --secure"          >> /etc/ords.conf
+        echo "JAVA_HOME=${JAVA_HOME}"                                 >> /etc/ords.conf
         /usr/bin/chown oracle:oinstall /etc/ords.conf
         /usr/bin/chmod 750 /etc/ords.conf
         logMesg "Configureing ORDS autostart with config file at: /etc/ords.conf" I "NONE"
@@ -240,6 +258,10 @@ if checkopt_oraORDS "$OPTIONS" ; then
         /bin/firewall-cmd --permanent --zone=public --add-port="${ords_port}/tcp"
         /bin/firewall-cmd --reload
 
+        # Setup oracle user environment for ORDS
+        echo "export ORDS_CONFIG=${ORDS_CONFIG}"  >> /home/oracle/.bashrc
+        echo "export JAVA_HOME=${JAVA_HOME}"      >> /home/oracle/.bashrc 
+        echo 'export PATH=${JAVA_HOME}/bin:$PATH' >> /home/oracle/.bashrc
     else
         echo "ERROR! could not find ORDS install file at: ${ords_src}"
         exit 1

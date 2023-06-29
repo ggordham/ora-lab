@@ -52,6 +52,8 @@ fi
 
 # run database creation assistant (dbca)
 if inListC "${build_steps}" "dbca"; then
+    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
     logMesg 0 "==== oraDBCA.sh (dbca)" I "${log_file}"
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraDBCA.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraDBCA.sh"
@@ -60,6 +62,8 @@ fi
 
 # run database creation assistant (lsnr)
 if inListC "${build_steps}" "lsnr"; then
+    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
     logMesg 0 "==== oraLsnr.sh (lsnr)" I "${log_file}"
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraLsnr.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraLsnr.sh"
@@ -67,11 +71,13 @@ if inListC "${build_steps}" "lsnr"; then
 
     # create TNS entires
     # decide on what SID or PDB to use for install
+    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
+    logMesg 0 "==== oraTNS.sh for $ora_db_sid" I "${log_file}"
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraTNS.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraTNS.sh"
     ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
     ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
-    logMesg 0 "==== oraTNS.sh for $ora_db_sid" I "${log_file}"
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraTNS.sh --dbservice ${ora_db_sid} >> ${log_file}"
     if [ "${ora_db_pdb}" != "__UNDEFINED__" ] || [ -n "${db_db_pdb:-}" ] ; then
         logMesg 0 "==== oraTNS.sh for $ora_db_pdb" I "${log_file}"
@@ -91,6 +97,8 @@ fi
 
 # Install Oracle database sample schemas (samp)
 if inListC "${build_steps}" "samp"; then
+    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
     logMesg 0 "==== oraDBSamp.sh (samp)" I "${log_file}"
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraDBSamp.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraDBSamp.sh"

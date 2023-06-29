@@ -11,10 +11,6 @@ rwl_dir=/u01/app/oracle/rwloadsim
 rwl_output=/u01/app/oracle/admin/rwlout
 rwl_password=xxxx
 
-export ORACLE_SID=${my_cdb}
-export ORAENV_ASK=NO
-source /usr/local/bin/oraenv
-
 source "${rwl_output}/workdir/${my_project}/${my_project}.env"
 
 temp_dir=/home/oracle/temp
@@ -24,16 +20,27 @@ cp "${rwl_dir}/admin/rwlschema.sql" "${temp_dir}"
 
 sed -i "s/{password}/${rwl_password}/" "${temp_dir}"/rwlschema.sql
 
-connect / as sysdb
+# Setup the Oracle environment
+export ORACLE_SID=${my_cdb}
+export ORAENV_ASK=NO
+# shellcheck disable=SC1091
+source /usr/local/bin/oraenv -s
+
+export ORACLE_PDB_SID=${my_db}
+
+"${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
+
+connect / as sysdba
 
 @${temp_dir}/rwlschema.sql
 
-CREATE TABLESPACE DATA DATAFILE '/u02/oradata/T1DB/pdb1/data01.dbf' SIZE 10G;
+CREATE TABLESPACE DATA DATAFILE '/u02/oradata/${my_cdb^^}/${my_db}/data01.dbf' SIZE 6G;
 
 connect rwloadsim/${rwl_password}@${my_db}
 
-@${rwl_dir}/rwloadsim.sql
-@${rwl_dir}/rwlviews.sql
+@${rwl_dir}/admin/rwloadsim.sql
+@${rwl_dir}/admin/rwlviews.sql
+!EOF
 
 # verify the following items:
 #  directory structure

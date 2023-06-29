@@ -20,6 +20,12 @@ my_cdb=t1db
 system_password=xxxx
 rwl_password=xxxx
 
+############################################################################################
+# start here
+
+# verify that we are root to run this script
+if [ "x$USER" != "xroot" ];then logMesg 1 "You must be logged in as root to run this script" E "NONE"; exit 1; fi
+
 db_url="//$( hostname -f ):1521/${my_db}"
 cdb_url="//$( hostname -f ):1521/${my_cdb}"
 

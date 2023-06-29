@@ -108,7 +108,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_mem: $ora_db_mem" I "NONE" ; fi
 
     # Setup Oracle environment
-    ORACLE_HOME="$ora_home"
+    export ORACLE_HOME="$ora_home"
     ORACLE_BASE=$( "${ORACLE_HOME}/bin/orabase" )
     LD_LIBRARY_PATH=${ORACLE_HOME}/lib
     export ORACLE_HOME ORACLE_BASE LD_LIBRARY_PATH
@@ -152,7 +152,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     echo "#   on date: $( date )" >> "${response_file}"
     # check the first part of the version number before the period
     case "${db_version%%.*}" in
-        "23b")
+        "23")
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v23.0.0" >> "$response_file" 
            db_variables="ORACLE_BASE_HOME=$( "$ORACLE_HOME"/bin/orabasehome ),${db_variables}"
            ;;

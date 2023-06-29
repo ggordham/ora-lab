@@ -44,7 +44,7 @@ function checkopt_oraTNS {
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraDBCA                          #  help
+               "-h") help_oraTNS                          #  help
                      exit 1;;
           "--dbservice") ora_db_sid="$2"
                      shift 2;;
