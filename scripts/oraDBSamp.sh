@@ -107,9 +107,13 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     if [ "${samp_schema_source}" == "file" ]; then samp_schema_file=$( cfgGet "$DEF_CONF_FILE" samp_schema_file );
         src_base=$( cfgGet "$DEF_CONF_FILE" src_base );
     elif [ "${samp_schema_source}" == "url" ]; then samp_schema_url=$( cfgGet "$DEF_CONF_FILE" samp_schema_url ); fi
+
     # Check that we have a sample schema source
-    if [ "${samp_schema_url}" == "__UNDEFINED__" ] || [ "${samp_schema_file}" == "__UNDEFINED__" ]; then 
-        logMesg 1 "could not load samp_schema_url or samp_schema_file from config file: $DEF_CONF_FILE" E "NONE" 
+    if [ "${samp_schema_source}" == "file" ] && [ "${samp_schema_file}" == "__UNDEFINED__" ]; then 
+        logMesg 1 "could not load samp_schema_file from config file: $DEF_CONF_FILE" E "NONE" 
+        exit 1
+    elif [ "${samp_schema_source}" == "url" ] && [ "${samp_schema_url}" == "__UNDEFINED__" ]; then 
+        logMesg 1 "could not load samp_schema_url from config file: $DEF_CONF_FILE" E "NONE" 
         exit 1
     fi 
     if [ "${samp_schema_source}" == "file" ] && [ ! -r "${src_base}/${samp_schema_file}" ]; then 
