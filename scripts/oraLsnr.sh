@@ -114,7 +114,7 @@ if checkopt_oraLsnr "$OPTIONS" ; then
 
     # check the first part of the version number before the period
     case "${db_version%%.*}" in
-        "23b")
+        "23")
            echo "RESPONSEFILE_VERSION=\"23.0\"" >> "$response_file" 
            ;;
         "21")
