@@ -73,11 +73,11 @@ if inListC "${build_steps}" "lsnr"; then
     # decide on what SID or PDB to use for install
     /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
     /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    logMesg 0 "==== oraTNS.sh for $ora_db_sid" I "${log_file}"
     /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraTNS.sh"
     /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraTNS.sh"
     ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
     ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
+    logMesg 0 "==== oraTNS.sh for $ora_db_sid" I "${log_file}"
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraTNS.sh --dbservice ${ora_db_sid} >> ${log_file}"
     if [ "${ora_db_pdb}" != "__UNDEFINED__" ] || [ -n "${db_db_pdb:-}" ] ; then
         logMesg 0 "==== oraTNS.sh for $ora_db_pdb" I "${log_file}"
