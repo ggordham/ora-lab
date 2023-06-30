@@ -198,7 +198,7 @@ if checkopt_oraORDS "$OPTIONS" ; then
             logMesg 0 "Configuring HTTP http://$( hostname -f):${ords_port}" I "NONE" 
             /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.http.port ${ords_port}"
         fi
-        /usr/bin/su oracle -c "${ords_path}/bin/ords config config set --global db.serviceNameSuffix \"\" "
+        /usr/bin/su oracle -c "${ords_path}/bin/ords config set --global db.serviceNameSuffix \"\" "
         /usr/bin/su oracle -c "${ords_path}/bin/ords config set standalone.access.log /var/log/ords"
 
         # Configure ORDS auto start

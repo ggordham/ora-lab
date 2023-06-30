@@ -3,6 +3,8 @@
 # oraDBSamp.sh
 
 # install the Oracle database sample schemas
+# Note: as of Mar 2023 this script is broken as the sample schema build
+#  process has changed.
 
 # Internal settings
 SCRIPTVER=1.0
@@ -99,12 +101,21 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
         exit 1
     fi 
 
-    # Get sample schema download URL
-    samp_schema_url=$( cfgGet "$DEF_CONF_FILE" samp_schema_url )
-    if [ "${samp_schema_url}" == "__UNDEFINED__" ]; then 
-        logMesg 1 "could not load samp_schema_url from config file: $DEF_CONF_FILE" E "NONE" 
+    # look for sample schema source type
+    if [ -z "${samp_schema_source:-}" ]; then samp_schema_source=$( cfgGet "$CONF_FILE" srvr_samp_schema_source ); fi
+    if [ "${samp_schema_source}" == "__UNDEFINED__" ]; then samp_schema_source=$( cfgGet "$DEF_CONF_FILE" samp_schema_source ); fi
+    if [ "${samp_schema_source}" == "file" ]; then samp_schema_file=$( cfgGet "$DEF_CONF_FILE" samp_schema_file );
+        src_base=$( cfgGet "$DEF_CONF_FILE" src_base );
+    elif [ "${samp_schema_source}" == "url" ]; then samp_schema_url=$( cfgGet "$DEF_CONF_FILE" samp_schema_url ); fi
+    # Check that we have a sample schema source
+    if [ "${samp_schema_url}" == "__UNDEFINED__" ] || [ "${samp_schema_file}" == "__UNDEFINED__" ]; then 
+        logMesg 1 "could not load samp_schema_url or samp_schema_file from config file: $DEF_CONF_FILE" E "NONE" 
         exit 1
     fi 
+    if [ "${samp_schema_source}" == "file" ] && [ ! -r "${src_base}/${samp_schema_file}" ]; then 
+        logMesg 1 "could not read sample schema file at: ${src_base}/${samp_schema_file}" E "NONE" 
+        exit 1
+    fi
 
     # decide on what SID or PDB to use for install
     ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
@@ -147,8 +158,17 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     system_password="${db_password}"
     samp_password="${db_password}"
 
-    # download the source files
-    /usr/bin/curl -L "${samp_schema_url}/tarball/main" | tar xz --strip=1 -C "${tgt_dir}" 
+    # stage sample schema
+    if [  "${samp_schema_source}" == "file" ]; then
+        logMesg 0 "unzipping the sample schema scripts" I "NONE"
+        /usr/bin/unzip "${src_base}/${samp_schema_file}" -d "${tgt_dir}"
+    elif [  "${samp_schema_source}" == "file" ]; then
+        logMesg 0 "downloading the sample schema scripts" I "NONE"
+        /usr/bin/curl -L "${samp_schema_url}/tarball/main" | tar xz --strip=1 -C "${tgt_dir}" 
+    else
+        logMesg 1 "unsuported sample schema file source: ${samp_schema_source}" E "NONE" 
+        exit 1
+    fi
 
     # update path in scripts to target directory
     /usr/bin/find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;

@@ -15,7 +15,7 @@ logMesg 0 "${SCRIPTNAME} start" I "NONE"
 
 logMesg 0 "Generating new SSH keys for oracle user" I "NONE"
 # generate SSH keys
-su - oracle -c ssh-keygen -t RSA -b 2048 -N ''
+su - oracle -c "ssh-keygen -t RSA -b 2048 -N ''"
 
 logMesg 0 "Installing oracle user command aliases and path updates" I "NONE"
 # setup path in ontime profile 
