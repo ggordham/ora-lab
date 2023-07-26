@@ -6,9 +6,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Test variables
-CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
-
 # retun command line help information
 function help_oraSwInst {
   echo >&2
@@ -87,25 +84,25 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # check if a ORACLE_BASE was set, otherwise lookup default setting
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" ora_base ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$ORA_CONF_FILE" ora_base ); fi
     if [ -z "${ora_home:-}" ]; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
     ora_inst=$( dirname "${ora_base}" )/oraInventory
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
 
-    # ora_vers=$( cfgGet "${CONF_FILE}" main_versions )
-    if inListC "$( cfgGet "${CONF_FILE}" main_versions )" "${ora_ver}" ; then
+    # ora_vers=$( cfgGet "${ORA_CONF_FILE}" main_versions )
+    if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
-        install_type=$( cfgGet "${CONF_FILE}" "${ora_ver}_install_type" )
-        main_file=$( cfgGet "${CONF_FILE}" "${ora_ver}_main" )
+        install_type=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_install_type" )
+        main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_main" )
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "install_type: $install_type" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "main_file: $main_file" I "NONE" ; fi
 
         # check if src_dir is set otherwise pull from default setting
         if [ -z "${src_dir:-}" ]; then 
-            src_base=$( cfgGet "$CONF_FILE" src_base )
-            src_dir="${src_base}$( cfgGet "$CONF_FILE" "${ora_ver}_src_dir" )"
+            src_base=$( cfgGet "$ORA_CONF_FILE" src_base )
+            src_dir="${src_base}$( cfgGet "$ORA_CONF_FILE" "${ora_ver}_src_dir" )"
         fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "src_dir: $src_dir" I "NONE" ; fi
 
@@ -113,8 +110,8 @@ if checkopt_oraSwInst "$OPTIONS" ; then
         if [ "$install_type" = "unzip" ]; then
 
             # looking up RU patches
-            ru_patch=$( cfgGet "${CONF_FILE}" "${ora_sub_ver}_RU" )
-            one_off=$( cfgGet "${CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
+            ru_patch=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
+            one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
 
             if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_patch: $ru_patch" I "NONE" ; fi
             if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi

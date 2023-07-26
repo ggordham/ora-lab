@@ -9,10 +9,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Default config information if not passed on command line
-CONF_FILE="${SCRIPTDIR}"/server.conf
-DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
-
 # retun command line help information
 function help_oraORDS {
   echo >&2
@@ -99,17 +95,17 @@ if checkopt_oraORDS "$OPTIONS" ; then
 
     # check if an command line paramters were passed, otherwise load defaults
     if [ -z "${ords_path:-}" ]; then ords_path=$( cfgGet "$CONF_FILE" srvr_ords_path ); fi
-    if [ "${ords_path}" == "__UNDEFINED__" ]; then ords_path=$( cfgGet "$DEF_CONF_FILE" ords_path ); fi
+    if [ "${ords_path}" == "__UNDEFINED__" ]; then ords_path=$( cfgGet "$ORA_CONF_FILE" ords_path ); fi
     if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGet "$CONF_FILE" srvr_ords_src ); fi
-    if [ "${ords_src}" == "__UNDEFINED__" ]; then ords_src=$( cfgGet "$DEF_CONF_FILE" ords_src ); fi
+    if [ "${ords_src}" == "__UNDEFINED__" ]; then ords_src=$( cfgGet "$ORA_CONF_FILE" ords_src ); fi
     if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGet "$CONF_FILE" srvr_ords_port ); fi
-    if [ "${ords_port}" == "__UNDEFINED__" ]; then ords_port=$( cfgGet "$DEF_CONF_FILE" ords_port ); fi
+    if [ "${ords_port}" == "__UNDEFINED__" ]; then ords_port=$( cfgGet "$ORA_CONF_FILE" ords_port ); fi
     if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGet "$CONF_FILE" srvr_ords_admin ); fi
-    if [ "${ords_admin}" == "__UNDEFINED__" ]; then ords_admin=$( cfgGet "$DEF_CONF_FILE" ords_admin ); fi
+    if [ "${ords_admin}" == "__UNDEFINED__" ]; then ords_admin=$( cfgGet "$ORA_CONF_FILE" ords_admin ); fi
 
     # get server specific settings
     ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port )
-    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
+    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$ORA_CONF_FILE" ora_lsnr_port ); fi
 
     # decide on what SID or PDB to use for install
     ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )

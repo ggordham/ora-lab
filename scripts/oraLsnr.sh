@@ -6,10 +6,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Default config information if not passed on command line
-CONF_FILE="${SCRIPTDIR}"/server.conf
-DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
-
 # retun command line help information
 function help_oraLsnr {
   echo >&2
@@ -84,7 +80,7 @@ if checkopt_oraLsnr "$OPTIONS" ; then
     # check if a ORACLE_HOME and other settings, otherwise lookup default setting
     if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
     if [ -z "${ora_lsnr_port:-}" ]; then ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port ); fi
-    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
+    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$ORA_CONF_FILE" ora_lsnr_port ); fi
 
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_lsnr_port: $ora_lsnr_port" I "NONE" ; fi

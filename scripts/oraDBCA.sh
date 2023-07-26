@@ -6,9 +6,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Default config information if not passed on command line
-CONF_FILE="${SCRIPTDIR}"/server.conf
-
 # retun command line help information
 function help_oraDBCA {
   echo >&2

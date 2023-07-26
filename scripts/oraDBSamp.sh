@@ -11,10 +11,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Default config information if not passed on command line
-CONF_FILE="${SCRIPTDIR}"/server.conf
-DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
-
 # retun command line help information
 function help_oraDBSamp {
   echo >&2
@@ -90,7 +86,7 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
 
     # setup staging directory
     if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGet "$CONF_FILE" srvr_stg_dir ); fi
-    if [ "${stg_dir}" == "__UNDEFINED__" ]; then stg_dir=$( cfgGet "$DEF_CONF_FILE" stg_dir ); fi
+    if [ "${stg_dir}" == "__UNDEFINED__" ]; then stg_dir=$( cfgGet "$ORA_CONF_FILE" stg_dir ); fi
     logMesg 0 "Making staging directory: $stg_dir" I "NONE"
     [ ! -d "${stg_dir}" ] && /usr/bin/mkdir -p "${stg_dir}"
     tgt_dir="${stg_dir}/examples"
@@ -103,17 +99,17 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
 
     # look for sample schema source type
     if [ -z "${samp_schema_source:-}" ]; then samp_schema_source=$( cfgGet "$CONF_FILE" srvr_samp_schema_source ); fi
-    if [ "${samp_schema_source}" == "__UNDEFINED__" ]; then samp_schema_source=$( cfgGet "$DEF_CONF_FILE" samp_schema_source ); fi
-    if [ "${samp_schema_source}" == "file" ]; then samp_schema_file=$( cfgGet "$DEF_CONF_FILE" samp_schema_file );
-        src_base=$( cfgGet "$DEF_CONF_FILE" src_base );
-    elif [ "${samp_schema_source}" == "url" ]; then samp_schema_url=$( cfgGet "$DEF_CONF_FILE" samp_schema_url ); fi
+    if [ "${samp_schema_source}" == "__UNDEFINED__" ]; then samp_schema_source=$( cfgGet "$ORA_CONF_FILE" samp_schema_source ); fi
+    if [ "${samp_schema_source}" == "file" ]; then samp_schema_file=$( cfgGet "$ORA_CONF_FILE" samp_schema_file );
+        src_base=$( cfgGet "$ORA_CONF_FILE" src_base );
+    elif [ "${samp_schema_source}" == "url" ]; then samp_schema_url=$( cfgGet "$ORA_CONF_FILE" samp_schema_url ); fi
 
     # Check that we have a sample schema source
     if [ "${samp_schema_source}" == "file" ] && [ "${samp_schema_file}" == "__UNDEFINED__" ]; then 
-        logMesg 1 "could not load samp_schema_file from config file: $DEF_CONF_FILE" E "NONE" 
+        logMesg 1 "could not load samp_schema_file from config file: $ORA_CONF_FILE" E "NONE" 
         exit 1
     elif [ "${samp_schema_source}" == "url" ] && [ "${samp_schema_url}" == "__UNDEFINED__" ]; then 
-        logMesg 1 "could not load samp_schema_url from config file: $DEF_CONF_FILE" E "NONE" 
+        logMesg 1 "could not load samp_schema_url from config file: $ORA_CONF_FILE" E "NONE" 
         exit 1
     fi 
     if [ "${samp_schema_source}" == "file" ] && [ ! -r "${src_base}/${samp_schema_file}" ]; then 
@@ -135,7 +131,7 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
 
     # get server specific settings for Listener
     ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port )
-    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$DEF_CONF_FILE" ora_lsnr_port ); fi
+    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$ORA_CONF_FILE" ora_lsnr_port ); fi
     connect_string="localhost:${ora_lsnr_port}/${db_name}"
 
     # setup Oracle environment
@@ -146,9 +142,9 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
 
     # look for tablespaces to use for sample schema install
     if [ -z "${samp_tablespace:-}" ]; then samp_tablespace=$( cfgGet "$CONF_FILE" srvr_samp_tablespace ); fi
-    if [ "${samp_tablespace}" == "__UNDEFINED__" ]; then samp_tablespace=$( cfgGet "$DEF_CONF_FILE" samp_tablespace ); fi
+    if [ "${samp_tablespace}" == "__UNDEFINED__" ]; then samp_tablespace=$( cfgGet "$ORA_CONF_FILE" samp_tablespace ); fi
     if [ -z "${samp_temp:-}" ]; then samp_temp=$( cfgGet "$CONF_FILE" srvr_samp_temp ); fi
-    if [ "${samp_temp}" == "__UNDEFINED__" ]; then samp_temp=$( cfgGet "$DEF_CONF_FILE" samp_temp ); fi
+    if [ "${samp_temp}" == "__UNDEFINED__" ]; then samp_temp=$( cfgGet "$ORA_CONF_FILE" samp_temp ); fi
 
     # load passwords
     # Lookup password for database note we use the SID name for now

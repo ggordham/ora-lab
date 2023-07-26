@@ -26,6 +26,11 @@ set -uo pipefail
 # Source the direcotry of the running script
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Default config information if not passed on command line
+CONF_FILE="${SCRIPTDIR}"/server.conf
+DEF_CONF_FILE="${SCRIPTDIR}"/defaults.conf
+ORA_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
+
 # Create a very static path
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin:$SCRIPTDIR"
 

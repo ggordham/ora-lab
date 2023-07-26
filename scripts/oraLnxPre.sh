@@ -12,9 +12,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Internal variables
-CONF_FILE="${SCRIPTDIR}"/defaults.conf
-
 # retun command line help information
 function help_oraLnxPre {
   echo >&2
@@ -109,14 +106,14 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # check if required settings are set, otherwise load from config file
-    if [ -z "${disk_list:-}" ]; then disk_list=$( cfgGet "$CONF_FILE" disk_list ); fi
-    if [ -z "${fs_type:-}" ]; then fs_type=$( cfgGet "$CONF_FILE" fs_type ); fi
-    if [ -z "${sft_type:-}" ]; then sft_type=$( cfgGet "$CONF_FILE" sft_type ); fi
-    if [ -z "${sft_mount:-}" ]; then sft_mount=$( cfgGet "$CONF_FILE" sft_mount ); fi
-    if [ -z "${sft_source:-}" ]; then sft_source=$( cfgGet "$CONF_FILE" sft_source ); fi
-    if [ -z "${lsnr_port:-}" ]; then lsnr_port=$( cfgGet "$CONF_FILE" lsnr_port ); fi
-    if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGet "$CONF_FILE" lnx_pkgs ); fi
-    if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGet "$CONF_FILE" lnx_pkg_tool ); fi
+    if [ -z "${disk_list:-}" ]; then disk_list=$( cfgGet "$DEF_CONF_FILE" disk_list ); fi
+    if [ -z "${fs_type:-}" ]; then fs_type=$( cfgGet "$DEF_CONF_FILE" fs_type ); fi
+    if [ -z "${sft_type:-}" ]; then sft_type=$( cfgGet "$DEF_CONF_FILE" sft_type ); fi
+    if [ -z "${sft_mount:-}" ]; then sft_mount=$( cfgGet "$DEF_CONF_FILE" sft_mount ); fi
+    if [ -z "${sft_source:-}" ]; then sft_source=$( cfgGet "$DEF_CONF_FILE" sft_source ); fi
+    if [ -z "${lsnr_port:-}" ]; then lsnr_port=$( cfgGet "$DEF_CONF_FILE" lsnr_port ); fi
+    if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGet "$DEF_CONF_FILE" lnx_pkgs ); fi
+    if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGet "$DEF_CONF_FILE" lnx_pkg_tool ); fi
  
     # setup local disks
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do

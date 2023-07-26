@@ -14,9 +14,6 @@ log_file="${log_path}/tstOraInst-$( date +%Y%m%d-%H%M%S ).log"
 echo "===============================================================" >> "${log_file}"
 logMesg 0 "==== Log File: ${log_file}" I "${log_file}"
 
-# Load configuration information from server specific configuration file
-CONF_FILE="${SCRIPTDIR}"/server.conf
-
 # get list of steps to run
 build_steps=$( cfgGet "$CONF_FILE" build_steps )
 logMesg 0 "=== Build steps: $build_steps" I "${log_file}"

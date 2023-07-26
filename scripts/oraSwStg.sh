@@ -7,11 +7,6 @@ SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Default config information if not passed on command line
-CONF_FILE="${SCRIPTDIR}"/server.conf
-DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
-
-
 # retun command line help information
 function help_oraSwStg {
   echo >&2
@@ -97,7 +92,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
     # setup staging directory
     if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGet "$CONF_FILE" srvr_stg_dir ); fi
-    if [ "${stg_dir}" == "__UNDEFINED__" ]; then stg_dir=$( cfgGet "$DEF_CONF_FILE" stg_dir ); fi
+    if [ "${stg_dir}" == "__UNDEFINED__" ]; then stg_dir=$( cfgGet "$ORA_CONF_FILE" stg_dir ); fi
     logMesg 0 "Making patch staging directory: $stg_dir" I "NONE"
     [ ! -d "${stg_dir}" ] && /usr/bin/mkdir -p "${stg_dir}"
     /usr/bin/mkdir -p "${stg_dir}/patch"
@@ -108,29 +103,29 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     fi 
 
     # check if a ORACLE_BASE was set, otherwise lookup default setting
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$DEF_CONF_FILE" ora_base ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$ORA_CONF_FILE" ora_base ); fi
     if [ -z "${ora_home:-}" ]; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
     ora_inst=$( dirname "${ora_base}" )
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
 
-    if inListC "$( cfgGet "${DEF_CONF_FILE}" main_versions )" "${ora_ver}" ; then
+    if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
-        install_type=$( cfgGet "${DEF_CONF_FILE}" "${ora_ver}_install_type" )
-        main_file=$( cfgGet "${DEF_CONF_FILE}" "${ora_ver}_main" )
+        install_type=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_install_type" )
+        main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_main" )
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "install_type: $install_type" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "main_file: $main_file" I "NONE" ; fi
 
         # check if src_dir is set otherwise pull from default setting
         if [ -z "${src_dir:-}" ]; then 
-            src_base=$( cfgGet "$DEF_CONF_FILE" src_base )
-            src_dir="${src_base}$( cfgGet "$DEF_CONF_FILE" "${ora_ver}_src_dir" )"
+            src_base=$( cfgGet "$ORA_CONF_FILE" src_base )
+            src_dir="${src_base}$( cfgGet "$ORA_CONF_FILE" "${ora_ver}_src_dir" )"
         fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "src_dir: $src_dir" I "NONE" ; fi
 
         # install the required database pre-install RPM
-        preinstall_rpm=$( cfgGet "${DEF_CONF_FILE}" "${ora_ver}_pre_install" )
+        preinstall_rpm=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_pre_install" )
         if [ "$preinstall_rpm" == "__UNDEFINED__" ]; then logMesg 1 "Pre Install RPM not found for $ora_ver" E "NONE"; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "preinstall_rpm: $preinstall_rpm" I "NONE" 
           else /bin/yum -y install "${preinstall_rpm}"; fi
@@ -177,8 +172,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
         # Stage the Oracle patches
         # looking up RU patches
-        ru_list=$( cfgGet "${DEF_CONF_FILE}" "${ora_sub_ver}_RU" )
-        one_off=$( cfgGet "${DEF_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
+        ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
+        one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
 
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
@@ -210,7 +205,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
         # Download the OPatch for this version
         logMesg 0 "Downloading OPatch" I "NONE"
-        opatch_ver=$( cfgGet "${DEF_CONF_FILE}" "${ora_ver}_opatch" )
+        opatch_ver=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_opatch" )
         if [ "$opatch_ver" == "__UNDEFINED__" ]; then 
             logMesg 0 "No OPatch to download for $ora_ver" I "NONE"
         else
@@ -236,7 +231,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
     else
         # Version of Oracle not found in config file
-        echo "ERROR! Did not find version: $ora_ver in config file $DEF_CONF_FILE"
+        echo "ERROR! Did not find version: $ora_ver in config file $ORA_CONF_FILE"
     fi
 
     logMesg 0 "${SCRIPTNAME} finished" I "NONE"

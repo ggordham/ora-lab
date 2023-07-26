@@ -9,10 +9,6 @@ SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
-# Default config information if not passed on command line
-CONF_FILE="${SCRIPTDIR}"/server.conf
-DEF_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
-
 # retun command line help information
 function help_oraRWLRun {
   echo >&2
@@ -103,7 +99,7 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
-    # check if a ORACLE_HOME and other settings, otherwise lookup default setting
+    # check if a oracle_db_sid and other settings, otherwise lookup default setting
     if [ -z "${ora_db_sid:-}" ]; then ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid ); fi
     if [ -z "${ora_db_pdb:-}" ]; then ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb ); fi
     if [ -z "${rwl_proj:-}" ]; then rwl_proj=$( cfgGet "$CONF_FILE" rwl_proj ); fi
