@@ -85,9 +85,6 @@ if [ "x$USER" != "xroot" ];then logMesg 1 "You must be logged in as root to run 
 
 if checkopt_oraRWLInst "$OPTIONS" ; then
 
-system_password=xxxx
-rwl_password=xxxx
-
     # check if a oracle_db_sid and other settings, otherwise lookup default setting
     if [ -z "${ora_db_sid:-}" ]; then ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid ); fi
     if [ -z "${ora_db_pdb:-}" ]; then ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb ); fi
@@ -102,9 +99,25 @@ rwl_password=xxxx
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_proj: $rwl_proj" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_dir: $rwl_outdir" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_outdir: $rwl_outdir" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_src_url: $rwl_outdir" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_src_url: $rwl_src_url" I "NONE" ; fi
     
-    rwl_src_file=$( /usr/bin/basename "${src_url}" )
+    # Lookup password for database
+    secret_name="db_all_${ora_db_sid}"
+    db_password=$( getSecret "${secret_name}" )
+    if [ "$db_password" == "__UNDEFINED__" ]; then
+        logMesg 1 "Password not found for DB, secret: $secret_name" E "NONE" 
+        exit 1
+    fi
+
+    # Lookup password for RWL schemas
+    secret_name="db_rwl_${ora_db_sid}"
+    rwl_password=$( getSecret "${secret_name}" )
+    if [ "$rwl_password" == "__UNDEFINED__" ]; then
+        logMesg 1 "Password not found for RWL schemas, secret: $secret_name" E "NONE" 
+        exit 1
+    fi
+
+    rwl_src_file=$( /usr/bin/basename "${rwl_src_url}" )
     db_url="//$( hostname -f ):1521/${ora_db_pdb}"
     cdb_url="//$( hostname -f ):1521/${ora_db_sid}"
     
@@ -154,15 +167,15 @@ rwl_password=xxxx
     echo "# used when schemas are created and filled with data"   >> "${rwl_rwl}"
     echo "cruser_connect := \"${db_url}\";"   >> "${rwl_rwl}"
     echo "cruser_username := \"system\";"   >> "${rwl_rwl}"
-    echo "cruser_password := \"${system_password}\";"   >> "${rwl_rwl}"
+    echo "cruser_password := \"${db_password}\";"   >> "${rwl_rwl}"
     echo "# used during actual execution of your runs to primarily run queries against v$ tables etc" >> "${rwl_rwl}"
     echo "system_connect := \"${db_url}\";"   >> "${rwl_rwl}"
     echo "system_username := \"system\";"   >> "${rwl_rwl}"
-    echo "system_password := \"${system_password}\";"   >> "${rwl_rwl}"
+    echo "db_password := \"${db_password}\";"   >> "${rwl_rwl}"
     echo "# Generate AWR reports from root container"           >> "${rwl_rwl}"
     echo "sysawr_connect := \"${cdb_url}\";"   >> "${rwl_rwl}"
     echo "sysawr_username := \"system\";"   >> "${rwl_rwl}"
-    echo "sysawr_password := \"${system_password}\";"   >> "${rwl_rwl}"
+    echo "sysawr_password := \"${db_password}\";"   >> "${rwl_rwl}"
     echo "# set the connection information for rwl repository"  >> "${rwl_rwl}"
     echo "results_in_test := 1; "   >> "${rwl_rwl}"
     echo "results_username := \"RWLOADSIM\";"   >> "${rwl_rwl}"
