@@ -23,7 +23,10 @@ function help_oraRWLInst {
   echo "--url     [Full download URL for software]      " >&2
   echo "--dir     [Install direcotry]                   " >&2
   echo "--outdir  [RWL output directory]                " >&2
-  echo "--debug     turn on debug mode                  " >&2
+  echo "--proj    [RWL project name]                    " >&2
+  echo "--dbsid   [DB SID]                              " >&2
+  echo "--dbpdb   [DB pdb name for CDB only]            " >&2
+   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
   echo "                                                " >&2
@@ -39,14 +42,14 @@ function checkopt_oraRWLInst {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,url:,dir:,outdir: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,url:,dir:,outdir:,proj:,dbsid:,dbpdb: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraRWLRun                        #  help
+               "-h") help_oraRWLInst                       #  help
                      exit 1;;
           "--url") rwl_src_url="$2"
                      shift 2;;
@@ -54,7 +57,13 @@ function checkopt_oraRWLInst {
                      shift 2;;
           "--outdir") rwl_outdir="$2"
                      shift 2;;
-          "--debug") DEBUG=TRUE                         # debug mode
+          "--proj") rwl_proj="$2"
+                     shift 2;;
+          "--dbsid") ora_db_sid="$2"
+                     shift 2;;
+          "--dbpdb") ora_db_pdb="$2"
+                     shift 2;;
+           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
                      shift ;;
            "--test") TEST=TRUE                           # test mode
@@ -97,7 +106,7 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_sid: $ora_db_sid" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_pdb: $ora_db_pdb" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_proj: $rwl_proj" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_dir: $rwl_outdir" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_dir: $rwl_dir" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_outdir: $rwl_outdir" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_src_url: $rwl_src_url" I "NONE" ; fi
     
@@ -117,14 +126,22 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
         exit 1
     fi
 
-    rwl_src_file=$( /usr/bin/basename "${rwl_src_url}" )
-    db_url="//$( hostname -f ):1521/${ora_db_pdb}"
-    cdb_url="//$( hostname -f ):1521/${ora_db_sid}"
+
+    # Adjust based on if PDB is configured or not
+    if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
+        logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
+        cdb_url="//$( hostname -f ):1521/${ora_db_sid}"
+        db_url="${cdb_url}"
+    else
+        cdb_url="//$( hostname -f ):1521/${ora_db_sid}"
+        db_url="//$( hostname -f ):1521/${ora_db_pdb}"
+    fi
     
     # install required GNUPlot software
     yum -y install gnuplot
     
     # install the RWL binaries
+    rwl_src_file=$( /usr/bin/basename "${rwl_src_url}" )
     mkdir -p "${rwl_dir}"
     wget "${rwl_src_url}" 
     tar -xzf "${rwl_src_file}" -C $"${rwl_dir}"

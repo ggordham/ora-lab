@@ -18,8 +18,7 @@ function help_oraRWLRun {
   echo >&2
   echo "Usage: $SCRIPTNAME [-h --debug --test ]        " >&2
   echo "-h          give this help screen               " >&2
-  echo "--dbsid   [DB SID]                              " >&2
-  echo "--pdb     [DB pdb name for CDB only]            " >&2
+  echo "--dbsid   [DB SID to set ENV]                   " >&2
   echo "--proj    [RWL Project name]                    " >&2
   echo "--sec     [Length of test in seconds]           " >&2
   echo "--proc    [Number of processes to start]        " >&2
@@ -42,7 +41,7 @@ function checkopt_oraRWLRun {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,noverify,dbsid:,pdb:,proj:,sec:,proc:,outdir: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,noverify,dbsid:,proj:,sec:,proc:,outdir: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -52,8 +51,6 @@ function checkopt_oraRWLRun {
                "-h") help_oraRWLRun                        #  help
                      exit 1;;
           "--dbsid") ora_db_sid="$2"
-                     shift 2;;
-          "--pdb") ora_db_pdb="$2"
                      shift 2;;
           "--proj") rwl_proj="$2"
                      shift 2;;
@@ -101,14 +98,12 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
 
     # check if a oracle_db_sid and other settings, otherwise lookup default setting
     if [ -z "${ora_db_sid:-}" ]; then ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid ); fi
-    if [ -z "${ora_db_pdb:-}" ]; then ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb ); fi
     if [ -z "${rwl_proj:-}" ]; then rwl_proj=$( cfgGet "$CONF_FILE" rwl_proj ); fi
     if [ -z "${rwl_sec:-}" ]; then rwl_sec=$( cfgGet "$CONF_FILE" rwl_sec ); fi
     if [ -z "${rwl_proc:-}" ]; then rwl_proc=$( cfgGet "$CONF_FILE" rwl_proc ); fi
     if [ -z "${rwl_outdir:-}" ]; then rwl_outdir=$( cfgGet "$CONF_FILE" rwl_outdir ); fi
 
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_sid: $ora_db_sid" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_pdb: $ora_db_pdb" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_proj: $rwl_proj" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_sec: $rwl_sec" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_proc: $rwl_proc" I "NONE" ; fi
@@ -121,8 +116,16 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
     source /usr/local/bin/oraenv
 
     # Source the RWL project environment
-    # shellcheck disable=SC1090
-    source "${rwl_outdir}/workdir/${rwl_proj}/${rwl_proj}.env"
+    rwl_env_file="${rwl_outdir}/workdir/${rwl_proj}/${rwl_proj}.env"
+    if [ -f "${rwl_env_file}" ]; then
+        # shellcheck disable=SC1090
+        source "${rwl_env_file}"
+    else
+        logMesg 1 "ERROR RWL environment file not found at: $rwl_env_file" E "NONE" 
+        logMesg 1 "  Verify that oraRWLInst.sh has been run correctly." E "NONE" 
+        exit 1
+    fi
+
     rwl_bindir="$( dirname "$( /usr/bin/which oltpverify )" )"
 
     temp_dir=/home/oracle/temp
@@ -133,7 +136,7 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
       "${rwl_bindir}"/oltpverify -a
     fi
 
-    echo "INFO - Starting OLTP run on DB ${ora_db_sid} PDB ${ora_db_pdb}"
+    echo "INFO - Starting OLTP run on DB ENV ${ora_db_sid} RWL Project ${rwl_proj}"
     echo "INFO - Log file at: ${log_file}"
 
     # check paramters
