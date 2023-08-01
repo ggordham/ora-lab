@@ -102,6 +102,22 @@ if inListC "${build_steps}" "samp"; then
     /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBSamp.sh >> ${log_file} 2>&1"
 fi
 
+# Install Oracle RWL Load Simulator (rwli)
+if inListC "${build_steps}" "samp"; then
+    logMesg 0 "==== oraRWLInst.sh (rwli)" I "${log_file}"
+    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraRWLInst.sh >> ${log_file} 2>&1"
+fi
+
+# Setup the RWL Load Simulator in the database (rwlset)
+if inListC "${build_steps}" "rwlset"; then
+    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
+    logMesg 0 "==== oraRWLSetup.sh (rwlset)" I "${log_file}"
+    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraRWLSetup.sh"
+    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraRWLSetup.sh"
+    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraRWLSetup.sh >> ${log_file} 2>&1"
+fi
+
 # configure oracle user profile (cfg)
 if inListC "${build_steps}" "cfg"; then
     logMesg 0 "==== oraUsrCfg.sh (cfg)" I "${log_file}"
