@@ -96,11 +96,6 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     logMesg 0 "Making patch staging directory: $stg_dir" I "NONE"
     [ ! -d "${stg_dir}" ] && /usr/bin/mkdir -p "${stg_dir}"
     /usr/bin/mkdir -p "${stg_dir}/patch"
-    /usr/bin/chown -R oracle:oinstall "${stg_dir}"
-    if [ ! -d "${stg_dir}" ]; then 
-        logMesg 1 "could not access stage directory: $stg_dir" E "NONE" 
-        exit 1
-    fi 
 
     # check if a ORACLE_BASE was set, otherwise lookup default setting
     if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$ORA_CONF_FILE" ora_base ); fi
@@ -139,6 +134,13 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         /usr/bin/chown -R oracle:oinstall "${ora_home}"
         /usr/bin/chown -R oracle:oinstall "${ora_inst}"
         if [ ! -d "${ora_base}" ]; then logMesg 1 "Failed to setup install directory $ora_base" E "NONE"; fi
+
+        # make sure stage directory is owned by Oracle user
+        /usr/bin/chown -R oracle:oinstall "${stg_dir}"
+        if [ ! -d "${stg_dir}" ]; then 
+            logMesg 1 "could not access stage directory: $stg_dir" E "NONE" 
+            exit 1
+        fi 
 
         # if legacy runinstall, make staging software location
         if [ "$install_type" == "runinstall" ]; then

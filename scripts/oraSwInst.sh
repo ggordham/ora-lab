@@ -91,6 +91,10 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
 
+    # OS version
+    os_ver=$( /bin/grep '^VERSION_ID' /etc/os-release | /bin/tr -d '"' | /bin/cut -d . -f 1 | /bin/cut -d = -f 2 )
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "Detected OS Version: $os_ver" I "NONE" ; fi
+
     # ora_vers=$( cfgGet "${ORA_CONF_FILE}" main_versions )
     if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
@@ -143,6 +147,19 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             cmd_parms="$cmd_parms oracle.install.db.OSKMDBA_GROUP=dba"
             cmd_parms="$cmd_parms oracle.install.db.OSRACDBA_GROUP=dba"
             cmd_parms="$cmd_parms DECLINE_SECURITY_UPDATES=true"
+
+            # Check for OS version specific workarounds
+            oui_os_issues=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_oui_os_issues" )
+            if [ "$oui_os_issues" != "__UNDEFINED__" ]; then
+                if inListC "$oui_os_issues" "$os_ver" ; then
+                    logMesg 0 "  OS workaround required for OS version $os_ver" I "NONE"; 
+                    oui_workaround=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_oui_workaround_${os_ver}" )
+                    logMesg 0 "  OS workaround command: $oui_workaround" I "NONE"; 
+                    if [ "$oui_workaround" != "__UNDEFINED__" ]; then
+                        ${oui_workaround}
+                    fi
+                fi
+            fi
 
             # Run the install command, unless we are testing
             if [ "$TEST" == "TRUE" ]; then 
