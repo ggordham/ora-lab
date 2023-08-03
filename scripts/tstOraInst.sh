@@ -10,11 +10,12 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
 
 function run_step {
+  # capture parameters 
   my_step_name=$1
   my_step_owner=$2
   my_step_script=$3
-  my_log_file=$5
-  my_step_options=$4
+  my_log_file=$4
+  my_step_options=$5
 
   my_step_group=$( /usr/bin/id -gn "${my_step_owner}" )
 
@@ -30,6 +31,9 @@ function run_step {
 
   return $my_return
 }
+
+############################################################################################
+# start here
 
 # setup log file location
 log_path="$( dirname "${SCRIPTDIR}" )"/log
