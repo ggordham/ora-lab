@@ -148,30 +148,47 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             cmd_parms="$cmd_parms oracle.install.db.OSRACDBA_GROUP=dba"
             cmd_parms="$cmd_parms DECLINE_SECURITY_UPDATES=true"
 
+            # Generate temp script for runInstaller
+            tmp_script=/tmp/oraSwInst_run.sh
+            chmod +x "${tmp_script}"
+            echo "# generated script by oraSwInst.sh to run runinstaller" > "${tmp_script}"
+            logMesg 0 "  Generated temporary script at: $tmp_script" I "NONE"; 
             # Check for OS version specific workarounds
-            oui_os_issues=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_oui_os_issues" )
+            oui_os_issues=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_oui_os_issues" )
+            logMesg 0 "  OS that need workaround for runinstaller $ora_ver" I "NONE"; 
             if [ "$oui_os_issues" != "__UNDEFINED__" ]; then
                 if inListC "$oui_os_issues" "$os_ver" ; then
                     logMesg 0 "  OS workaround required for OS version $os_ver" I "NONE"; 
-                    oui_workaround=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_oui_workaround_${os_ver}" )
+                    oui_workaround=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_oui_workaround_${os_ver}" )
                     logMesg 0 "  OS workaround command: $oui_workaround" I "NONE"; 
                     if [ "$oui_workaround" != "__UNDEFINED__" ]; then
-                        ${oui_workaround}
+                        echo "# OUI work around command for OS version $os_ver" >> "${tmp_script}"
+                        # remove leading and trailing quotes from work around string
+                        my_temp="${oui_workaround%\"}"
+                        my_temp="${my_temp#\"}"
+                        echo "${my_temp}" >> "${tmp_script}"
                     fi
                 fi
             fi
 
             # Run the install command, unless we are testing
+            echo "# OUI command " >> "${tmp_script}"
+            echo "${ora_home}/runInstaller $cmd_parms" >> "${tmp_script}"
             if [ "$TEST" == "TRUE" ]; then 
-                logMesg 0 "Install CMD: ${ora_home}/runInstaller $cmd_parms" I "NONE"; 
+                logMesg 0 "Contents of runinstaller script: $tmp_script" I "NONE"; 
+                /usr/bin/cat "${tmp_script}"
             else
-                /usr/bin/su oracle -c "${ora_home}/runInstaller $cmd_parms"
+                /usr/bin/su oracle -c "${tmp_script}"
             fi
         fi
 
         # Run post install scripts
-        "${ora_inst}"/orainstRoot.sh
-        "${ora_home}"/root.sh
+        if [ "$TEST" == "TRUE" ]; then 
+            logMesg 0 "Not running root scripts in test mode!" I "NONE"; 
+        else
+            "${ora_inst}"/orainstRoot.sh
+            "${ora_home}"/root.sh
+        fi
 
     else
         echo "ERROR! Did not find version: $ora_ver"
