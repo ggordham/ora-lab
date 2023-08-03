@@ -106,15 +106,26 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # check if required settings are set, otherwise load from config file
-    if [ -z "${disk_list:-}" ]; then disk_list=$( cfgGet "$DEF_CONF_FILE" disk_list ); fi
-    if [ -z "${fs_type:-}" ]; then fs_type=$( cfgGet "$DEF_CONF_FILE" fs_type ); fi
-    if [ -z "${sft_type:-}" ]; then sft_type=$( cfgGet "$DEF_CONF_FILE" sft_type ); fi
-    if [ -z "${sft_mount:-}" ]; then sft_mount=$( cfgGet "$DEF_CONF_FILE" sft_mount ); fi
-    if [ -z "${sft_source:-}" ]; then sft_source=$( cfgGet "$DEF_CONF_FILE" sft_source ); fi
-    if [ -z "${lsnr_port:-}" ]; then lsnr_port=$( cfgGet "$DEF_CONF_FILE" lsnr_port ); fi
-    if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGet "$DEF_CONF_FILE" lnx_pkgs ); fi
-    if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGet "$DEF_CONF_FILE" lnx_pkg_tool ); fi
+    if [ -z "${disk_list:-}" ]; then disk_list=$( cfgGetD "$CONF_FILE" srvr_disk_list "$DEF_CONF_FILE" disk_list ); fi
+    if [ -z "${fs_type:-}" ]; then fs_type=$( cfgGetD "$CONF_FILE" srvr_fs_type "$DEF_CONF_FILE" fs_type ); fi
  
+    if [ -z "${sft_type:-}" ]; then sft_type=$( cfgGetD  "$CONF_FILE" srvr_sft_type "$DEF_CONF_FILE" sft_type ); fi
+    if [ -z "${sft_mount:-}" ]; then sft_mount=$( cfgGetD "$CONF_FILE" srvr_sft_mount  "$DEF_CONF_FILE" sft_mount ); fi
+    if [ -z "${sft_source:-}" ]; then sft_source=$( cfgGetD "$CONF_FILE" srvr_sft_source  "$DEF_CONF_FILE" sft_source ); fi
+    if [ -z "${lsnr_port:-}" ]; then lsnr_port=$( cfgGetD "$CONF_FILE" srvr_ora_lsnr_port  "$DEF_CONF_FILE" lsnr_port ); fi
+    if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGetD "$CONF_FILE" srvr_lnx_pkgs  "$DEF_CONF_FILE" lnx_pkgs ); fi
+    if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGetD "$CONF_FILE" srvr_lnx_pkg_tool  "$DEF_CONF_FILE" lnx_pkg_tool ); fi
+
+    # output some test information
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "disk_list: $disk_list" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "fs_type: $fs_type" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "sft_type: $sft_type" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "sft_mount: $sft_mount" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "sft_source: $sft_source" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "lsnr_port: $lsnr_port" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkgs: $lnx_pkgs" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkg_tool: $lnx_pkg_tool" I "NONE" ; fi
+
     # setup local disks
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
         mount=$( echo "${disk}" | /bin/cut -d : -f 1 )

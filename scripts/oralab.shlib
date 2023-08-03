@@ -14,6 +14,7 @@
 # FUNCTIONS in this Library:
 #  logMesg CODE TEXT [I|W|E] FILE
 #  cfgGet FILE CFG_NAME
+#  cfgGetD FILE CFG_NAME DEFAULT_FILE DEFAULT_CFG_NAME
 #  inList "A B C D" "B"
 #  inListC "A,B,C,D" "B"
 #  trim " ab cd "
@@ -26,7 +27,8 @@ set -uo pipefail
 # Source the direcotry of the running script
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Default config information if not passed on command line
+export CONF_FILE DEF_CONF_FILE ORA_CONF_FILE
+# Default config information sourced if not passed on command line for script
 CONF_FILE="${SCRIPTDIR}"/server.conf
 DEF_CONF_FILE="${SCRIPTDIR}"/defaults.conf
 ORA_CONF_FILE="${SCRIPTDIR}"/ora_inst_files.conf
@@ -103,6 +105,32 @@ cfgGet() {
         else
             echo "INTERNAL ERROR: can not read configuration file $conf_file" >&2
         fi
+    fi 
+}
+
+# function to lookup config settings from file
+#   cfgGetD FILE CFG_NAME DEFAULT_FILE DEFAULT_CFG_NAME
+#     returns the configuration setting from FILE, if not found 
+#       looks for setting in DEFAULT_FILE with name DEFAULT_CFG_NAME
+#
+cfgGetD() {
+
+    # check that we had 4 command line options
+    if [ "$#" -eq 4 ]; then
+        confd_file=$1
+        confd_name=$2
+        def_confd_file=$3
+        def_confd_name=$4
+
+        if [ -r "${confd_file}" ] && [ -r "${def_confd_file}" ]; then
+            # check main config file if undefined check default config file
+            confd_val=$( cfgGet "$confd_file" "${confd_name}" )
+            if [ "${confd_val}" == "__UNDEFINED__" ]; then confd_val=$( cfgGet "$def_confd_file" "${def_confd_name}" ); fi
+            printf -- "%s" "${confd_val}";
+        else
+            echo "INTERNAL ERROR: can not read configuration files $conf_file or $def_confd_file" >&2
+        fi
+
     fi 
 }
 
