@@ -150,8 +150,8 @@ if checkopt_oraSwInst "$OPTIONS" ; then
 
             # Generate temp script for runInstaller
             tmp_script=/tmp/oraSwInst_run.sh
-            chmod +x "${tmp_script}"
             echo "# generated script by oraSwInst.sh to run runinstaller" > "${tmp_script}"
+            chmod +x "${tmp_script}"
             logMesg 0 "  Generated temporary script at: $tmp_script" I "NONE"; 
             # Check for OS version specific workarounds
             oui_os_issues=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_oui_os_issues" )
@@ -178,7 +178,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
                 logMesg 0 "Contents of runinstaller script: $tmp_script" I "NONE"; 
                 /usr/bin/cat "${tmp_script}"
             else
-                /usr/bin/su oracle -c "${tmp_script}"
+                /usr/bin/su oracle -c "/bin/bash ${tmp_script}"
             fi
         fi
 
@@ -186,8 +186,9 @@ if checkopt_oraSwInst "$OPTIONS" ; then
         if [ "$TEST" == "TRUE" ]; then 
             logMesg 0 "Not running root scripts in test mode!" I "NONE"; 
         else
-            "${ora_inst}"/orainstRoot.sh
-            "${ora_home}"/root.sh
+            logMesg 0 " Running root scripts." I "NONE"; 
+            [ -x "${ora_inst}"/orainstRoot.sh ] && "${ora_inst}"/orainstRoot.sh
+            [ -x "${ora_home}"/root.sh ] && "${ora_home}"/root.sh
         fi
 
     else
