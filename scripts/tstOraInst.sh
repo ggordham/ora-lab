@@ -3,9 +3,33 @@
 # tstOraInst.sh
 
 # Internal settings
+export SCRIPTDIR
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
+
+
+function run_step {
+  my_step_name=$1
+  my_step_owner=$2
+  my_step_script=$3
+  my_log_file=$5
+  my_step_options=$4
+
+  my_step_group=$( /usr/bin/id -gn "${my_step_owner}" )
+
+  /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${my_log_file}"
+  /usr/bin/sudo sh -c "/usr/bin/chown ${my_step_owner} ${my_log_file}"
+  /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/${my_step_script}"
+  /usr/bin/sudo sh -c "/usr/bin/chgrp ${my_step_group} ${SCRIPTDIR}/${my_step_script}"
+  logMesg 0 "==== step ${my_step_name} script: ${my_step_script} Start " I "${my_log_file}"
+  logMesg 0 "  options ${my_step_options} " I "${my_log_file}"
+  /usr/bin/sudo -u "${my_step_owner}" sh -c "${SCRIPTDIR}/${my_step_script} ${my_step_options} >> ${my_log_file} 2>&1"
+  my_return=$?
+  logMesg 0 "==== ${my_step_script} Finished.  Return code: $my_return " I "${my_log_file}"
+
+  return $my_return
+}
 
 # setup log file location
 log_path="$( dirname "${SCRIPTDIR}" )"/log
@@ -19,66 +43,60 @@ build_steps=$( cfgGet "$CONF_FILE" build_steps )
 logMesg 0 "=== Build steps: $build_steps" I "${log_file}"
 
 # Note need to add lookup for any non-defaulted values, not just known ones
-disk_list=$( cfgGet "$CONF_FILE" srvr_disk_list )
 ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver )
 ora_subver=$( cfgGet "$CONF_FILE" srvr_ora_subver )
 stg_dir=$( cfgGet "$CONF_FILE" srvr_stg_dir )
 ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base )
 ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home )
 
+# start with clean step status
+stp_status=0
 
 # run Linux pre-install items (pre)
 if inListC "${build_steps}" "pre"; then
-    logMesg 0 "==== oraLnxPre.sh (pre)" I "${log_file}"
-    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraLnxPre.sh --disks ${disk_list} >> ${log_file} 2>&1"
+    options=""
+    run_step pre root oraLnxPre.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # download and stage rquired software (stg)
-if inListC "${build_steps}" "stg"; then
-    logMesg 0 "==== oraSwStg.sh (stg)" I "${log_file}"
-    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraSwStg.sh --oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home} >> ${log_file} 2>&1"
+if inListC "${build_steps}" "stg" && (( stp_status == 0 )); then
+    options="--oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home}"
+    run_step stg root oraSwStg.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # run software install (inst)
-if inListC "${build_steps}" "inst"; then
-    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    logMesg 0 "==== oraSwInst.sh (inst)" I "${log_file}"
-    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraSwInst.sh --oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home} >> ${log_file} 2>&1"
+if inListC "${build_steps}" "inst" && (( stp_status == 0 )); then
+    options="--oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home}"
+    run_step inst oracle oraSwInst.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # run database creation assistant (dbca)
-if inListC "${build_steps}" "dbca"; then
-    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    logMesg 0 "==== oraDBCA.sh (dbca)" I "${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraDBCA.sh"
-    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraDBCA.sh"
-    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBCA.sh --insecure >> ${log_file} 2>&1"
+if inListC "${build_steps}" "dbca" && (( stp_status == 0 )); then
+    options="--insecure"
+    run_step dbca oracle oraDBCA.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # run database creation assistant (lsnr)
-if inListC "${build_steps}" "lsnr"; then
-    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    logMesg 0 "==== oraLsnr.sh (lsnr)" I "${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraLsnr.sh"
-    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraLsnr.sh"
-    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraLsnr.sh >> ${log_file} 2>&1"
+if inListC "${build_steps}" "lsnr" && (( stp_status == 0 )); then
+    options=""
+    run_step lsnr oracle oraLsnr.sh "${log_file}" "${options}" 
+    stp_status=$?
 
     # create TNS entires
-    # decide on what SID or PDB to use for install
-    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraTNS.sh"
-    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraTNS.sh"
     ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
     ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
     logMesg 0 "==== oraTNS.sh for $ora_db_sid" I "${log_file}"
-    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraTNS.sh --dbservice ${ora_db_sid} >> ${log_file} 2>&1"
+    options="--dbservice ${ora_db_sid}"
+    run_step tns oracle oraTNS.sh "${log_file}" "${options}" 
+    stp_status=$?
     if [ "${ora_db_pdb}" != "__UNDEFINED__" ] || [ -n "${db_db_pdb:-}" ] ; then
-        logMesg 0 "==== oraTNS.sh for $ora_db_pdb" I "${log_file}"
-        /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraTNS.sh --dbservice ${ora_db_pdb} >> ${log_file} 2>&1"
+        options="--dbservice ${ora_db_pdb}"
+        run_step tns oracle oraTNS.sh "${log_file}" "${options}" 
+        stp_status=$?
     fi 
 fi
 
@@ -87,45 +105,43 @@ logMesg 0 "==== sleep for 60 seconds to allow Listener registration" I "${log_fi
 /bin/sleep 60
 
 # Install Oracle Rest Data Services (ords)
-if inListC "${build_steps}" "ords"; then
-    logMesg 0 "==== oraORDS.sh (ords)" I "${log_file}"
-    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraORDS.sh >> ${log_file} 2>&1"
+if inListC "${build_steps}" "ords" && (( stp_status == 0 )); then
+    options=""
+    run_step ords root oraORDS.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # Install Oracle database sample schemas (samp)
-if inListC "${build_steps}" "samp"; then
-    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    logMesg 0 "==== oraDBSamp.sh (samp)" I "${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraDBSamp.sh"
-    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraDBSamp.sh"
-    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraDBSamp.sh >> ${log_file} 2>&1"
+if inListC "${build_steps}" "samp" && (( stp_status == 0 )); then
+    options=""
+    run_step samp oracle oraDBSamp.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
-# Install Oracle RWL Load Simulator (rwli)
-if inListC "${build_steps}" "samp"; then
-    logMesg 0 "==== oraRWLInst.sh (rwli)" I "${log_file}"
-    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraRWLInst.sh >> ${log_file} 2>&1"
+# Install Oracle RWL Load Simulator install (rwli)
+if inListC "${build_steps}" "samp" && (( stp_status == 0 )); then
+    options=""
+    run_step rwli root oraRWLInst.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # Setup the RWL Load Simulator in the database (rwlset)
-if inListC "${build_steps}" "rwlset"; then
-    /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chown oracle ${log_file}"
-    logMesg 0 "==== oraRWLSetup.sh (rwlset)" I "${log_file}"
-    /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/oraRWLSetup.sh"
-    /usr/bin/sudo sh -c "/usr/bin/chgrp oinstall ${SCRIPTDIR}/oraRWLSetup.sh"
-    /usr/bin/sudo -u oracle sh -c "${SCRIPTDIR}/oraRWLSetup.sh >> ${log_file} 2>&1"
+if inListC "${build_steps}" "rwlset" && (( stp_status == 0 )); then
+    options=""
+    run_step rwlset oracle oraRWLSetup.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 # configure oracle user profile (cfg)
-if inListC "${build_steps}" "cfg"; then
-    logMesg 0 "==== oraUsrCfg.sh (cfg)" I "${log_file}"
-    /usr/bin/sudo sh -c "${SCRIPTDIR}/oraUsrCfg.sh >> ${log_file} 2>&1"
+if inListC "${build_steps}" "cfg" && (( stp_status == 0 )); then
+    options=""
+    run_step cfg root oraUsrCfg.sh "${log_file}" "${options}" 
+    stp_status=$?
 fi
 
 echo "===============================================================" >> "${log_file}"
 
+echo "Final Build status code: $stp_status"
 echo "Build started: $( /bin/last | /bin/grep reboot | /bin/tail -1 )" >> "${log_file}"
 echo "Build finished: $( date )" >> "${log_file}"
 # END

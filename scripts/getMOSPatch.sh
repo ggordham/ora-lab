@@ -32,6 +32,7 @@ echo "GG - updated in 2022 to fix a few bugs of this script and clean up the cod
 
 # standard variables that could be passed - prevent undefined errors
 export p_patch p_download p_destination p_reset p_xml p_regexp p_readme p_debug
+RESULT=0
 
 # Setting some variables for the files I'll operati with
 PREF=$( basename "$0" )
@@ -141,6 +142,7 @@ clean_temp
 if [ ! -f "$CFG" ] || [ "$p_reset" == "yes" ] ; then
     echo; echo "Getting the Platform/Language list"
     wget --no-check-certificate --load-cookies="$COOK" "https://updates.oracle.com/Orion/SavedSearches/switch_to_simple" -O "$TMP1" -q
+    RESULT=$?
 
     # Prompt the user to select a language / platform code
     echo "Available Platforms and Languages:"
@@ -176,6 +178,7 @@ do
        
         # Download the list of patches available from search into TMP1, then grep out the lines for Download and clean out to get the URLs for each download, put that in TMP2
         wget --no-check-certificate --load-cookies="$COOK" "https://updates.oracle.com/Orion/SimpleSearch/process_form?search_type=patch&patch_number=${pp_patch}&plat_lang=${PLATLANG}" -O "$TMP1" -q
+        RESULT=$?
        
         # Check if any of the patches are password protected (this seems too global)
         if [ "$( grep "javascript:showDetails(\"/Orion/PatchDetails/process_form" "$TMP1" | grep -ce "title=\"Download Password Protected Patch" )" -gt 0 ]
@@ -193,6 +196,7 @@ do
         grep "javascript:showDetails(\"/Orion/PatchDetails/process_form" "$TMP1" | grep -v -e "title=\"Download Password Protected Patch" -e "Download/process_form" -e  "class=\"OraTableCellNumber" -e "title=\"Translation Required" | sed 's/ //g' | sed "s/.*href='javascript:showDetails(\"//g" | sed "s/\".*//g" | while read -r LINE
           do
             wget --no-check-certificate --load-cookies="$COOK" "https://updates.oracle.com/${LINE}" -O "$TMP4" -q
+            RESULT=$?
             # look for download file, updated regex search to only look at file name field 
             #OLD# grep "Download/process_form" "$TMP4" | grep -E "${p_regexp}" | sed 's/ //g' | sed "s/.*href=\"//g" | sed "s/\".*//g" >> "$TMP2"
             grep "Download/process_form" "$TMP1" | sed 's/ //g' | sed "s/.*href=\"//g" | sed "s/\".*//g" | awk -F = -v filter="${p_regexp}" '$4 ~ filter { print $0 }' > "$TMP2"
@@ -220,6 +224,7 @@ do
             sed -n "${DownList}p" "$TMP2" | awk -F"=" '{print $NF}' | sed "s/[?&]//g" | sed "s/^/  /g"
         else
             echo "ERROR! no patch available"
+            RESULT=2
         fi
     done < "$CFG"  # end of language iteration loop
 done               # end of patch number loop
@@ -244,10 +249,12 @@ if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' 
             echo "Note: File $fname exist" ;
             echo "Checking if file $fname has changed on server ..." ;
             curl -R -b "$COOK" -c "$COOK" --insecure -z "$fname" --output "$fname" -L "$URL"
+            RESULT=$?
             echo "$fname completed with status: $?"
         else
             echo "Downloading file $fname ..."
             curl -R -b "$COOK" -c "$COOK" --insecure --output "$fname" -L "$URL"
+            RESULT=$?
             echo "$fname completed with status: $?"
         fi
         
@@ -257,6 +264,7 @@ if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' 
             echo
             echo "Downloading readme file ..."
             curl -R -b "$COOK" -c "$COOK" --insecure --output "$fname_.readme" -L "https://updates.oracle.com/Orion/Services/download?type=readme&bugfix_name=$pp_patch"
+            RESULT=$?
             if [ -f "$fname_.readme" ]; then
                 if [ "$( file -b "$fname_.readme" )" == "HTML document text" ]; then
                     mv "$fname_.readme" "$fname_.html"
@@ -271,6 +279,7 @@ if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' 
             echo
             echo "Downloading xml file ..."
             curl -R -b "$COOK" -c "$COOK" --insecure --output "$fname_.xml" -L "https://updates.oracle.com/Orion/Services/search?bug=$pp_patch"
+            RESULT=$?
         fi
         
     done < "$TMP3"
@@ -285,5 +294,5 @@ if [ $UNPUSHD ]; then
     popd >/dev/null 2>&1
 fi
 
-exit 0
+exit $RESULT
 # END
