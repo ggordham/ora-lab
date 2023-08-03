@@ -1,4 +1,4 @@
-
+a
 resource "proxmox_vm_qemu" "proxmox_vm" {
   #### Customzie these settings for each VM
   name  = var.v_name
@@ -113,7 +113,12 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
     }
   }
 
-
+  # tried to remove local SSH key but var.v_name can't
+  # be referenced in destroy section only self. variables
+  #provisioner "local-exec" {
+  #  when    = "destroy"
+  #  command = "/usr/bin/ssh-keygen -R ${var.v_name}"
+  #}
 }
 
 
