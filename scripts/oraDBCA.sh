@@ -152,13 +152,16 @@ if checkopt_oraDBCA "$OPTIONS" ; then
         "23")
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v23.0.0" >> "$response_file" 
            db_variables="ORACLE_BASE_HOME=$( "$ORACLE_HOME"/bin/orabasehome ),${db_variables}"
+           recovery_size="recoveryAreaSize=54525952BYTES"
            ;;
         "21")
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v21.0.0" >> "$response_file" 
            db_variables="ORACLE_BASE_HOME=$( "$ORACLE_HOME"/bin/orabasehome ),${db_variables}"
+           recovery_size="recoveryAreaSize=54525952BYTES"
            ;;
         "19")
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v19.0.0" >> "$response_file" 
+           recovery_size=""
            ;;
         *)
           echo "Oracle version not supported!"
@@ -216,7 +219,7 @@ dvAccountManagerPassword=
 datafileJarLocation={ORACLE_HOME}/assistants/dbca/templates/
 datafileDestination=${ora_db_data}/{DB_UNIQUE_NAME}/
 recoveryAreaDestination=
-recoveryAreaSize=54525952BYTES
+${recovery_size}
 storageType=FS
 diskGroupName=
 asmsnmpPassword=
@@ -270,7 +273,7 @@ EOF
     #
 
     # remove passwords from response file
-    if [ "$INSECURE" == "TRUE" ]; then
+    if [ -n "${INSECURE:-}" ] && [ "$INSECURE" == "TRUE" ]; then
         logMesg 0 "Insecure option, leaving passwords in response file." I "NONE"
     else
         /bin/sed -i "s/${db_password}/XXXXXXXX/g" "${response_file}"

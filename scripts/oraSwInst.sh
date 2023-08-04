@@ -170,7 +170,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             logMesg 0 "  Generated temporary script at: $tmp_script" I "NONE"; 
             # Check for OS version specific workarounds
             oui_os_issues=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_oui_os_issues" )
-            logMesg 0 "  OS that need workaround for runinstaller $ora_ver" I "NONE"; 
+            logMesg 0 "  Checking if OS needs workaround for runinstaller $ora_ver" I "NONE"; 
             if [ "$oui_os_issues" != "__UNDEFINED__" ]; then
                 if inListC "$oui_os_issues" "$os_ver" ; then
                     logMesg 0 "  OS workaround required for OS version $os_ver" I "NONE"; 
@@ -182,6 +182,8 @@ if checkopt_oraSwInst "$OPTIONS" ; then
                         my_temp="${oui_workaround%\"}"
                         my_temp="${my_temp#\"}"
                         echo "${my_temp}" >> "${tmp_script}"
+                      else
+                        echo "# NO OUI work around command needed for OS version $os_ver" >> "${tmp_script}"
                     fi
                 fi
             fi
