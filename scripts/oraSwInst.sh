@@ -95,7 +95,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
 
     # check for settings that can be in server config or default config
     if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir ); fi
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base ); fi
     ora_inst=$( dirname "${ora_base}" )/oraInventory
 
     # Provide some infomration if in test mode

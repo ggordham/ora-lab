@@ -96,9 +96,9 @@ if checkopt_oraORDS "$OPTIONS" ; then
     # check if an command line paramters were passed, otherwise load defaults
     
     if [ -z "${ords_path:-}" ]; then ords_path=$( cfgGetD "$CONF_FILE" srvr_ords_path "$ORA_CONF_FILE" ords_path ); fi
-    if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGet "$CONF_FILE" srvr_ords_src "$ORA_CONF_FILE" ords_src ); fi
-    if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGet "$CONF_FILE" srvr_ords_port "$ORA_CONF_FILE" ords_port ); fi
-    if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGet "$CONF_FILE" srvr_ords_admin "$ORA_CONF_FILE" ords_admin ); fi
+    if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGetD "$CONF_FILE" srvr_ords_src "$ORA_CONF_FILE" ords_src ); fi
+    if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGetD "$CONF_FILE" srvr_ords_port "$ORA_CONF_FILE" ords_port ); fi
+    if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGetD "$CONF_FILE" srvr_ords_admin "$ORA_CONF_FILE" ords_admin ); fi
 
     # output some test information
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_path: $ords_path" I "NONE" ; fi
