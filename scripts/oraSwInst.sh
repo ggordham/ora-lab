@@ -75,6 +75,9 @@ function checkopt_oraSwInst {
 ############################################################################################
 # start here
 
+# verify that we are root to run this script
+if [ "x$USER" != "xroot" ];then logMesg 1 "You must be logged in as root to run this script" E "NONE"; exit 1; fi
+
 OPTIONS=$@
 
 if checkopt_oraSwInst "$OPTIONS" ; then
@@ -83,13 +86,25 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
-    # check if a ORACLE_BASE was set, otherwise lookup default setting
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$ORA_CONF_FILE" ora_base ); fi
-    if [ -z "${ora_home:-}" ]; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+    # Get settings from server config file if not set on command line
+    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver ); fi
+    if [ -z "${ora_subver:-}" ]; then ora_subver=$( cfgGet "$CONF_FILE" srvr_ora_subver ); fi
+    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
+    # For oracle home we have a default setting if it is not set
+    if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+
+    # check for settings that can be in server config or default config
+    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base ); fi
     ora_inst=$( dirname "${ora_base}" )/oraInventory
+
+    # Provide some infomration if in test mode
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_subver: $ora_subver" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "stg_dir: $stg_dir" I "NONE" ; fi
 
     # OS version
     os_ver=$( /bin/grep '^VERSION_ID' /etc/os-release | /bin/tr -d '"' | /bin/cut -d . -f 1 | /bin/cut -d = -f 2 )
@@ -203,6 +218,4 @@ else
 fi
 
 #END
-
-
 

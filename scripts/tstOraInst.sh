@@ -75,8 +75,8 @@ fi
 
 # run software install (inst)
 if inListC "${build_steps}" "inst" && (( stp_status == 0 )); then
-    options="--oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home}"
-    run_step inst oracle oraSwInst.sh "${log_file}" "${options}" 
+    options=""
+    run_step inst root oraSwInst.sh "${log_file}" "${options}" 
     stp_status=$?
 fi
 
