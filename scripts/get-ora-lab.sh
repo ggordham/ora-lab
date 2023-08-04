@@ -15,7 +15,7 @@ log_file=/tmp/get-ora-lab.log
 cur_user=$( /usr/bin/id -un )
 cur_group=$( /usr/bin/id -gn )
 
-echo "===== get-ora-lab.sh " >> "${log_file}"
+echo "===== get-ora-lab.sh Starting" >> "${log_file}"
 echo "  running as user: $cur_user " >> "${log_file}"
 echo "  running as group: $cur_group " >> "${log_file}"
 
@@ -41,18 +41,19 @@ if ! /usr/bin/rpm -q --quiet tar; then
 fi
 
 # make the target directory for ora-lab
+echo "  Making target path: $target_path"
 [[ ! -d "${target_path}" ]] && sudo /usr/bin/mkdir "${target_path}"
 sudo /usr/bin/chown "${cur_user}" "${target_path}"
 sudo /usr/bin/chgrp "${cur_group}" "${target_path}"
 
 # download the ora-lab scripts
-echo "Downloading ora-lab scripts from: ${repo_url}/scripts/tstOraInst.sh" >> "${log_file}"
+echo "  Downloading ora-lab scripts from: ${repo_url}/scripts/tstOraInst.sh" >> "${log_file}"
 /usr/bin/curl -L ${repo_url}/tarball/main | tar xz -C "${target_path}" --strip=1 "${package_root}-???????/${target}"  | /usr/bin/tee -a "${log_file}"
 /usr/bin/find ${target_path} -name \*.sh -exec /usr/bin/chmod 754 {} \;
 
 # check if cloud-init is finished then reboot
 while [ ! "$( trim "$( /usr/bin/sudo /usr/bin/cloud-init status | /usr/bin/cut -d: -f2 )" )" == "done" ]; do
-    echo "Waiting for Cloud init to complete, sleeping 30 seconds" | /usr/bin/tee -a "${log_file}"
+    echo "  Waiting for Cloud init to complete, sleeping 30 seconds" | /usr/bin/tee -a "${log_file}"
     sleep 30
 done
 
@@ -66,6 +67,7 @@ echo "initiating reboot $( date )" >> "${log_file}"
 /usr/bin/nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" > /tmp/ora-lab-reboot.log &
 jobs | /usr/bin/tee -a "${log_file}"
 echo "Exiting  $( date )" >> "${log_file}"
+echo "===== get-ora-lab.sh Finished" >> "${log_file}"
 exit 0
 
 # END 
