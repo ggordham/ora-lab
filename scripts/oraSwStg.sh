@@ -93,15 +93,15 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # Get settings from server config file if not set on command line
-    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver )
-    if [ -z "${ora_subver:-}" ]; then ora_subver=$( cfgGet "$CONF_FILE" srvr_ora_subver )
-    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home )
+    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver ); fi
+    if [ -z "${ora_subver:-}" ]; then ora_subver=$( cfgGet "$CONF_FILE" srvr_ora_subver ); fi
+    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
     # For oracle home we have a default setting if it is not set
-    if [ -z "${ora_home:-}" ] || [ ${ora_home} == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+    if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
 
     # check for settings that can be in server config or default config
-    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir )
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base )
+    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base ); fi
     ora_inst=$( dirname "${ora_base}" )
 
     # Provide some infomration if in test mode
