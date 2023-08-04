@@ -94,18 +94,21 @@ if checkopt_oraORDS "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # check if an command line paramters were passed, otherwise load defaults
-    if [ -z "${ords_path:-}" ]; then ords_path=$( cfgGet "$CONF_FILE" srvr_ords_path ); fi
-    if [ "${ords_path}" == "__UNDEFINED__" ]; then ords_path=$( cfgGet "$ORA_CONF_FILE" ords_path ); fi
-    if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGet "$CONF_FILE" srvr_ords_src ); fi
-    if [ "${ords_src}" == "__UNDEFINED__" ]; then ords_src=$( cfgGet "$ORA_CONF_FILE" ords_src ); fi
-    if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGet "$CONF_FILE" srvr_ords_port ); fi
-    if [ "${ords_port}" == "__UNDEFINED__" ]; then ords_port=$( cfgGet "$ORA_CONF_FILE" ords_port ); fi
-    if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGet "$CONF_FILE" srvr_ords_admin ); fi
-    if [ "${ords_admin}" == "__UNDEFINED__" ]; then ords_admin=$( cfgGet "$ORA_CONF_FILE" ords_admin ); fi
+    
+    if [ -z "${ords_path:-}" ]; then ords_path=$( cfgGetD "$CONF_FILE" srvr_ords_path "$ORA_CONF_FILE" ords_path ); fi
+    if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGet "$CONF_FILE" srvr_ords_src "$ORA_CONF_FILE" ords_src ); fi
+    if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGet "$CONF_FILE" srvr_ords_port "$ORA_CONF_FILE" ords_port ); fi
+    if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGet "$CONF_FILE" srvr_ords_admin "$ORA_CONF_FILE" ords_admin ); fi
 
+    # output some test information
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_path: $ords_path" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_src: $ords_src" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_port: $ords_port" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_admin: $ords_admin" I "NONE" ; fi
+ 
     # get server specific settings
-    ora_lsnr_port=$( cfgGet "$CONF_FILE" srvr_ora_lsnr_port )
-    if [ "${ora_lsnr_port}" == "__UNDEFINED__" ]; then ora_lsnr_port=$( cfgGet "$ORA_CONF_FILE" ora_lsnr_port ); fi
+    ora_lsnr_port=$( cfgGetD "$CONF_FILE" srvr_ora_lsnr_port "$DEF_CONF_FILE" lsnr_port )
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_lsnr_port: $ora_lsnr_port" I "NONE" ; fi
 
     # decide on what SID or PDB to use for install
     ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )

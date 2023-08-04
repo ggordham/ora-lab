@@ -65,7 +65,7 @@ fi
 
 # download and stage rquired software (stg)
 if inListC "${build_steps}" "stg" && (( stp_status == 0 )); then
-    options="--oraver ${ora_ver} --orasubver ${ora_subver} --stgdir ${stg_dir} --orabase ${ora_base} --orahome ${ora_home}"
+    options=""
     run_step stg root oraSwStg.sh "${log_file}" "${options}" 
     stp_status=$?
 fi

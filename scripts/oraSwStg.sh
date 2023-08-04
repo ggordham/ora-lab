@@ -92,21 +92,32 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
+    # Get settings from server config file if not set on command line
+    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver )
+    if [ -z "${ora_subver:-}" ]; then ora_subver=$( cfgGet "$CONF_FILE" srvr_ora_subver )
+    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home )
+    # For oracle home we have a default setting if it is not set
+    if [ -z "${ora_home:-}" ] || [ ${ora_home} == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+
+    # check for settings that can be in server config or default config
+    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir )
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base )
+    ora_inst=$( dirname "${ora_base}" )
+
+    # Provide some infomration if in test mode
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_subver: $ora_subver" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "stg_dir: $stg_dir" I "NONE" ; fi
+
     # setup staging directory
-    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGet "$CONF_FILE" srvr_stg_dir ); fi
-    if [ "${stg_dir}" == "__UNDEFINED__" ]; then stg_dir=$( cfgGet "$ORA_CONF_FILE" stg_dir ); fi
     logMesg 0 "Making patch staging directory: $stg_dir" I "NONE"
     [ ! -d "${stg_dir}" ] && /usr/bin/mkdir -p "${stg_dir}"
     /usr/bin/mkdir -p "${stg_dir}/patch"
 
-    # check if a ORACLE_BASE was set, otherwise lookup default setting
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGet "$ORA_CONF_FILE" ora_base ); fi
-    if [ -z "${ora_home:-}" ]; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
-    ora_inst=$( dirname "${ora_base}" )
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
-
+    # check if the version is valid, and lookup settings for this version
     if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
         install_type=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_install_type" )
@@ -201,7 +212,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         # Loop through each patch and download
         for p_patch in $( echo "$p_list" | tr "," " " ); do
             logMesg 0 "Downloading and unzipping Patch: $p_patch" I "NONE"
-            "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" destination="${stg_dir}/patch"
+            if [ "$DEBUG" == "TRUE" ]; then debug_flag="debug=yes"; else debug_flag=""; fi
+            "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" destination="${stg_dir}/patch" "${debug_flag}"
             error_code=$?
             if (( error_code == 0 )); then
                 p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
@@ -223,7 +235,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                 if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_ver: $opatch_ver" I "NONE" ; fi
                 p_patch=6880880
                 if [ "$DEBUG" == "TRUE" ]; then debug_flag="debug=yes"; else debug_flag=""; fi
-                "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" regexp="$opatch_ver" destination="${stg_dir}/patch" "$debug_flag"
+                "${SCRIPTDIR}/getMOSPatch.sh" patch="${p_patch}" regexp="${opatch_ver}" destination="${stg_dir}/patch" "${debug_flag}"
                 error_code=$?
                 if [ "$DEBUG" == "TRUE" ]; then logMsg 0 "getMOSPatch.sh tmp2 file: $( cat "${SCRIPTDIR}/.getMosPatch.sh.tmp2" )" I "NONE" ; fi
   

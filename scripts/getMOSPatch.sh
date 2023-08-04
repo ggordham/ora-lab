@@ -101,6 +101,8 @@ function clean_wgetrc {
 
 }
 
+# cleanup before running
+clean_temp
 
 # change into p_destination if defined, so we can run this from crontab or from other script
 if [ "$p_destination" ]; then
