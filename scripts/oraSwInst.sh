@@ -88,7 +88,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
 
     # Get settings from server config file if not set on command line
     if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver ); fi
-    if [ -z "${ora_subver:-}" ]; then ora_subver=$( cfgGet "$CONF_FILE" srvr_ora_subver ); fi
+    if [ -z "${ora_sub_ver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" srvr_ora_sub_ver ); fi
     if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
     # For oracle home we have a default setting if it is not set
     if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
@@ -100,7 +100,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
 
     # Provide some infomration if in test mode
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_subver: $ora_subver" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_sub_ver: $ora_sub_ver" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_HOME: $ora_home" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
