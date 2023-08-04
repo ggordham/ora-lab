@@ -19,10 +19,13 @@ function run_step {
 
   my_step_group=$( /usr/bin/id -gn "${my_step_owner}" )
 
-  /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${my_log_file}"
-  /usr/bin/sudo sh -c "/usr/bin/chown ${my_step_owner} ${my_log_file}"
-  /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/${my_step_script}"
-  /usr/bin/sudo sh -c "/usr/bin/chgrp ${my_step_group} ${SCRIPTDIR}/${my_step_script}"
+  # if running as non-root user make sure script and log have proper owner
+  if [ "${my_step_owner}" != "root" ]; then
+      /usr/bin/sudo sh -c "/usr/bin/chmod 666 ${my_log_file}"
+      /usr/bin/sudo sh -c "/usr/bin/chown ${my_step_owner} ${my_log_file}"
+      /usr/bin/sudo sh -c "/usr/bin/chmod 774 ${SCRIPTDIR}/${my_step_script}"
+      /usr/bin/sudo sh -c "/usr/bin/chgrp ${my_step_group} ${SCRIPTDIR}/${my_step_script}"
+  fi
   logMesg 0 "==== step ${my_step_name} script: ${my_step_script} Start " I "${my_log_file}"
   logMesg 0 "  options ${my_step_options} " I "${my_log_file}"
   /usr/bin/sudo -u "${my_step_owner}" sh -c "${SCRIPTDIR}/${my_step_script} ${my_step_options} >> ${my_log_file} 2>&1"
