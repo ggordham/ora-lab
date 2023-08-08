@@ -119,7 +119,6 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     export ORACLE_HOME ORACLE_BASE LD_LIBRARY_PATH
 
     # run opatch to get db home version, only return the first line as that is probably the database product
-    #  Note need to add code to map 11.1, 11.2, 12.1, 12.2 to 11g1, 11g2, 12c1, 12c2
     set -o pipefail; db_version=$( "${ORACLE_HOME}/OPatch/opatch" lsinventory | awk '/^Oracle Database/ {print $NF}' | head -1)
     return_code=$?
     if (( return_code > 0 )); then
@@ -128,6 +127,11 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "db_version: $db_version" I "NONE" ; fi
 
+    # set the oracle version
+    #  Note need to add code to map 11.1, 11.2, 12.1, 12.2 to 11g1, 11g2, 12c1, 12c2
+    #    only works for 18, 19, 21, 23 right now
+    ora_ver=${db_version%%.*}
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
 
     # Lookup password for database
     secret_name="db_all_${ora_db_sid}"
@@ -138,7 +142,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     fi
 
     # Genearte a DBCA response file
-    if [ -z "${dbca_temp:-}" ]; then dbca_temp=$( cfgGet "$ORA_CONF_FILE" "${db_version}_dbca_temp" ); fi
+    if [ -z "${dbca_temp:-}" ]; then dbca_temp=$( cfgGet "$ORA_CONF_FILE" "${ora_ver}_dbca_temp" ); fi
     if [ "$dbca_temp" == "__UNDEFINED__" ]; then logMesg 1 "DBCA tempalte parameter not set: $dbca_temp" E "NONE"; exit 1; fi
     response_file="/tmp/dbca_${ora_db_sid}.rsp"
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "dbca_temp: $dbca_temp" I "NONE" ; fi
@@ -159,7 +163,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     db_variables="DB_UNIQUE_NAME=${ora_db_sid},ORACLE_BASE=${ORACLE_BASE},PDB_NAME=,DB_NAME=${ora_db_sid},ORACLE_HOME=${ORACLE_HOME},SID=${ora_db_sid}"
 
     # check the first part of the version number before the period
-    case "${db_version%%.*}" in
+    case "${ora_ver}" in
         "23")
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v23.0.0" >> "$response_file" 
            db_variables="ORACLE_BASE_HOME=$( "$ORACLE_HOME"/bin/orabasehome ),${db_variables}"
@@ -172,7 +176,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v19.0.0" >> "$response_file" 
            ;;
         *)
-          echo "Oracle version not supported!"
+          echo "Oracle version $ora_ver not supported!"
           exit 1 ;;
     esac
 
