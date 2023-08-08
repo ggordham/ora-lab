@@ -126,14 +126,14 @@ if inListC "${build_steps}" "samp" && (( stp_status == 0 )); then
 fi
 
 # Install Oracle RWL Load Simulator install (rwli)
-if inListC "${build_steps}" "samp" && (( stp_status == 0 )); then
+if inListC "${build_steps}" "rwli" && (( stp_status == 0 )); then
     options=""
     run_step rwli root oraRWLInst.sh "${log_file}" "${options}" 
     stp_status=$?
 fi
 
-# Setup the RWL Load Simulator in the database (rwlset)
-if inListC "${build_steps}" "rwlset" && (( stp_status == 0 )); then
+# Setup the RWL Load Simulator in the database (rwls)
+if inListC "${build_steps}" "rwls" && (( stp_status == 0 )); then
     options=""
     run_step rwlset oracle oraRWLSetup.sh "${log_file}" "${options}" 
     stp_status=$?

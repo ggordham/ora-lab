@@ -7,6 +7,7 @@
 #  process has changed.
 
 # Internal settings
+export SCRIPTDIR 
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
@@ -160,10 +161,10 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
 
     # stage sample schema
     if [  "${samp_schema_source}" == "file" ]; then
-        logMesg 0 "unzipping the sample schema scripts" I "NONE"
-        /usr/bin/unzip "${src_base}/${samp_schema_file}" -d "${tgt_dir}"
+        logMesg 0 "unzipping the sample schema scripts to: $tgt_dir" I "NONE"
+        /usr/bin/unzip -oq "${src_base}/${samp_schema_file}" -d "${tgt_dir}"
     elif [  "${samp_schema_source}" == "file" ]; then
-        logMesg 0 "downloading the sample schema scripts" I "NONE"
+        logMesg 0 "downloading the sample schema scripts, loading to: $tgt_dir" I "NONE"
         /usr/bin/curl -L "${samp_schema_url}/tarball/main" | tar xz --strip=1 -C "${tgt_dir}" 
     else
         logMesg 1 "unsuported sample schema file source: ${samp_schema_source}" E "NONE" 
@@ -171,11 +172,15 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     fi
 
     # update path in scripts to target directory
-    /usr/bin/find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;
+    logMesg 0 "Updating scripts with installed path" I "NONE"
+    /usr/bin/find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec /bin/sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;
 
-    cd "${tgt_dir}" || echo "Error, could not find directory: ${tgt_dir}"
+    cd "${tgt_dir}" || logMesg 1 "Error, could not find directory: ${tgt_dir}" E "NONE"
+    log_file="${tgt_dir}/log/mksample-$( date +%Y%m%d-%H%M%S ).log"
+    logMesg 0 "Check log file for errors: $log_file" I "NONE"
+    logMesg 0 "Running mksample xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx ${samp_tablespace} ${samp_temp} ${tgt_dir}/log ${connect_string}"  I "NONE"
     
-    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
+    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${log_file}" 2>&1
 
 SET ECHO ON
 WHENEVER sqlerror EXIT sql.sqlcode;
@@ -190,15 +195,18 @@ WHENEVER sqlerror CONTINUE;
     return_code=$?
     # lets see if there was an error, and clean up so we can re-run
     if (( return_code > 0 )); then 
-        echo "sample schema SQLPLUS return code: $return_code"
+        logMesg 0 "sample schema SQLPLUS return code: $return_code" I "NONE"
         /usr/bin/rm -rf "${tgt_dir}"
         exit ${return_code}
     fi
     
     # install the customer order schema
-    cd "${tgt_dir}/customer_orders" || echo "Error, could not find directory: ${tgt_dir}/customer_orders"
+    cd "${tgt_dir}/customer_orders" || logMesg 1 "Error, could not find directory: ${tgt_dir}/customer_orders" E "NONE"
+    log_file="${tgt_dir}/log/co_main-$( date +%Y%m%d-%H%M%S ).log"
+    logMesg 0 "Check log file for errors: $log_file" I "NONE"
+    logMesg 0 "Running co_main xxxxx ${connect_string} ${samp_tablespace} ${samp_temp}" I "NONE"
 
-    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF
+    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${log_file}" 2>&1
 
 SET ECHO ON
 WHENEVER sqlerror EXIT sql.sqlcode;
@@ -211,7 +219,7 @@ WHENEVER sqlerror CONTINUE;
 !EOF
     return_code=$?
 
-    echo "customer orders SQLPLUS return code: $return_code"
+    logMesg 0 "customer orders SQLPLUS return code: $return_code" I "NONE"
     exit ${return_code}
 else
     echo "ERROR - invalid command line parameters" >&2
