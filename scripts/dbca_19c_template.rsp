@@ -1,0 +1,89 @@
+# DBCA 19c Response file template
+# for ora-lab project
+#
+#Database Name
+gdbName=${ora_db_sid}
+sid=${ora_db_sid}
+templateName=General_Purpose.dbc
+datafileJarLocation={ORACLE_HOME}/assistants/dbca/templates/
+
+# Server configuration
+databaseConfigType=SI
+RACOneNodeServiceName=
+policyManaged=false
+createServerPool=false
+serverPoolName=
+cardinality=
+pqPoolName=
+pqCardinality=
+nodelist=
+runCVUChecks=FALSE
+
+# Container DB information
+createAsContainerDatabase=${container_flag}
+numberOfPDBs=1
+pdbName=${ora_db_pdb}
+useLocalUndoForPDBs=true
+
+# passwords
+sysPassword=${db_password}
+systemPassword=${db_password}
+pdbAdminPassword=${db_password}
+dbsnmpPassword=${db_password}
+serviceUserPassword=${db_password}
+
+# Enterprise Manager Configuration (CENTRAL|DBEXPRESS|BOTH|NONE)
+emConfiguration=
+emExpressPort=5500
+omsHost=
+omsPort=0
+emUser=
+emPassword=
+
+# Database Vault and Label Security configuration
+olsConfiguration=false
+dvConfiguration=false
+dvUserName=
+dvUserPassword=
+dvAccountManagerName=
+dvAccountManagerPassword=
+
+# Database Configuration
+# DB Storage
+datafileDestination=${ora_db_data}/{DB_UNIQUE_NAME}/
+recoveryAreaDestination=
+storageType=FS
+diskGroupName=
+asmsnmpPassword=
+recoveryGroupName=
+
+# DB Character set
+characterSet=AL32UTF8
+nationalCharacterSet=AL16UTF16
+
+# DB memory parameters
+automaticMemoryManagement=false
+totalMemory=${ora_db_mem}
+databaseType=MULTIPURPOSE
+memoryPercentage=
+
+# DB Network configuraiton
+listeners=
+skipListenerRegistration=true
+registerWithDirService=false
+dirServiceUserName=
+dirServicePassword=
+walletPassword=
+
+# Misc other options
+variablesFile=
+variables=${db_variables}
+
+# comma seperated list of paramters to be set in the datbase
+# initParams=
+initParams=audit_trail=none,audit_sys_operations=false
+
+# database install options
+sampleSchema=false
+
+# END

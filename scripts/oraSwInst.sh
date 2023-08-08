@@ -2,6 +2,7 @@
 # oraSwInst.sh - install Oracle Software
 
 # Internal settings
+export SCRIPTDIR
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
