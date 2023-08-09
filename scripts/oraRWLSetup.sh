@@ -137,8 +137,8 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
     fi
 
     # modify the required scripts for running
-    logMesg 0 "Setting up schema file at: $temp_dir/rwlschema.sql" I "NONE"
     temp_dir="${rwl_dir}/temp"
+    logMesg 0 "Setting up schema file at: $temp_dir/rwlschema.sql" I "NONE"
     [ ! -d "${temp_dir}" ] && mkdir "${temp_dir}"
     /usr/bin/cp "${rwl_dir}/admin/rwlschema.sql" "${temp_dir}"
     /usr/bin/sed -i "s/{password}/${rwl_password}/" "${temp_dir}"/rwlschema.sql
