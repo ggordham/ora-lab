@@ -40,7 +40,7 @@ function checkopt_oraUsrCfg {
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraDBCA                          #  help
+               "-h") help_oraUsrCfg                          #  help
                      exit 1;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x

@@ -38,7 +38,7 @@ function checkopt_oraLsnr {
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraDBCA                          #  help
+               "-h") help_oraLsnr                          #  help
                      exit 1;;
           "--port") ora_lsnr_port="$2"
                      shift 2;;

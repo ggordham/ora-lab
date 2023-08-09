@@ -44,7 +44,7 @@ function checkopt_oraDBSamp {
         eval set -- "$my_opts"
         while true; do
             case $1 in
-               "-h") help_oraDBCA                          #  help
+               "-h") help_oraDBSamp                          #  help
                      exit 1;;
           "--stgdir") stg_dir="$2"
                      shift 2;;
