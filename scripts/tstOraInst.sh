@@ -105,11 +105,12 @@ if inListC "${build_steps}" "lsnr" && (( stp_status == 0 )); then
         run_step tns oracle oraTNS.sh "${log_file}" "${options}" 
         stp_status=$?
     fi 
+
+    # wait for listner registation
+    logMesg 0 "==== sleep for 60 seconds to allow Listener registration" I "${log_file}"
+    /bin/sleep 60
 fi
 
-# wait for listner registation
-logMesg 0 "==== sleep for 60 seconds to allow Listener registration" I "${log_file}"
-/bin/sleep 60
 
 # Install Oracle Rest Data Services (ords)
 if inListC "${build_steps}" "ords" && (( stp_status == 0 )); then

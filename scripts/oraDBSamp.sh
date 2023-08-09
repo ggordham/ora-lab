@@ -99,8 +99,7 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     fi 
 
     # look for sample schema source type
-    if [ -z "${samp_schema_source:-}" ]; then samp_schema_source=$( cfgGet "$CONF_FILE" srvr_samp_schema_source ); fi
-    if [ "${samp_schema_source}" == "__UNDEFINED__" ]; then samp_schema_source=$( cfgGet "$ORA_CONF_FILE" samp_schema_source ); fi
+    if [ -z "${samp_schema_source:-}" ]; then samp_schema_source=$( cfgGetD "$CONF_FILE" srvr_samp_schema_source "$ORA_CONF_FILE" samp_schema_source ); fi
     if [ "${samp_schema_source}" == "file" ]; then samp_schema_file=$( cfgGet "$ORA_CONF_FILE" samp_schema_file );
         src_base=$( cfgGet "$ORA_CONF_FILE" src_base );
     elif [ "${samp_schema_source}" == "url" ]; then samp_schema_url=$( cfgGet "$ORA_CONF_FILE" samp_schema_url ); fi
@@ -142,10 +141,8 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     source /usr/local/bin/oraenv -s
 
     # look for tablespaces to use for sample schema install
-    if [ -z "${samp_tablespace:-}" ]; then samp_tablespace=$( cfgGet "$CONF_FILE" srvr_samp_tablespace ); fi
-    if [ "${samp_tablespace}" == "__UNDEFINED__" ]; then samp_tablespace=$( cfgGet "$ORA_CONF_FILE" samp_tablespace ); fi
-    if [ -z "${samp_temp:-}" ]; then samp_temp=$( cfgGet "$CONF_FILE" srvr_samp_temp ); fi
-    if [ "${samp_temp}" == "__UNDEFINED__" ]; then samp_temp=$( cfgGet "$ORA_CONF_FILE" samp_temp ); fi
+    if [ -z "${samp_tablespace:-}" ]; then samp_tablespace=$( cfgGetD "$CONF_FILE" srvr_samp_tablespace "$ORA_CONF_FILE" samp_tablespace ); fi
+    if [ -z "${samp_temp:-}" ]; then samp_temp=$( cfgGetD "$CONF_FILE" srvr_samp_temp "$ORA_CONF_FILE" samp_temp ); fi
 
     # load passwords
     # Lookup password for database note we use the SID name for now
@@ -176,11 +173,14 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
     /usr/bin/find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec /bin/sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;
 
     cd "${tgt_dir}" || logMesg 1 "Error, could not find directory: ${tgt_dir}" E "NONE"
-    log_file="${tgt_dir}/log/mksample-$( date +%Y%m%d-%H%M%S ).log"
-    logMesg 0 "Check log file for errors: $log_file" I "NONE"
-    logMesg 0 "Running mksample xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx ${samp_tablespace} ${samp_temp} ${tgt_dir}/log ${connect_string}"  I "NONE"
+    sql_log_dir="${tgt_dir}/log"
+    [ ! -d "${sql_log_dir}" ] && /usr/bin/mkdir -p "${sql_log_dir}"
+    sql_log_file="${sql_log_dir}/mksample-$( date +%Y%m%d-%H%M%S ).log"
+    logMesg 0 "Check log file for errors: $sql_log_file" I "NONE"
+    # Note log path being passed to script has to have trailing / or examples directory gets removed
+    logMesg 0 "Running mksample xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx ${samp_tablespace} ${samp_temp} ${sql_log_dir}/ ${connect_string}"  I "NONE"
     
-    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${log_file}" 2>&1
+    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${sql_log_file}" 2>&1
 
 SET ECHO ON
 WHENEVER sqlerror EXIT sql.sqlcode;
@@ -189,7 +189,7 @@ connect system/${system_password}@${connect_string}
 
 WHENEVER sqlerror CONTINUE;
 
-@mksample ${system_password} ${sys_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_tablespace} ${samp_temp} ${tgt_dir}/log ${connect_string}
+@mksample ${system_password} ${sys_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_password} ${samp_tablespace} ${samp_temp} ${sql_log_dir}/ ${connect_string}
 
 !EOF
     return_code=$?
@@ -202,11 +202,12 @@ WHENEVER sqlerror CONTINUE;
     
     # install the customer order schema
     cd "${tgt_dir}/customer_orders" || logMesg 1 "Error, could not find directory: ${tgt_dir}/customer_orders" E "NONE"
-    log_file="${tgt_dir}/log/co_main-$( date +%Y%m%d-%H%M%S ).log"
-    logMesg 0 "Check log file for errors: $log_file" I "NONE"
+    sql_log_file="${sql_log_dir}/co_main-$( date +%Y%m%d-%H%M%S ).log"
+    logMesg 0 "Check log file for errors: $sql_log_file" I "NONE"
+    logMesg 0 " Note also check: $tgt_dir/customer_orders/co_install.log" I "NONE"
     logMesg 0 "Running co_main xxxxx ${connect_string} ${samp_tablespace} ${samp_temp}" I "NONE"
 
-    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${log_file}" 2>&1
+    "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${sql_log_file}" 2>&1
 
 SET ECHO ON
 WHENEVER sqlerror EXIT sql.sqlcode;
