@@ -81,8 +81,6 @@ fi
 
 ############################################################################################
 # start here
-# verify that we are root to run this script
-if [ "x$USER" != "xroot" ];then echo "You must be logged in as root to run this script"; exit 1; fi
 
 echo "===== get-ora-lab.sh Starting" | /usr/bin/tee -a "${log_file}"
 echo "  running as user: $cur_user " | /usr/bin/tee -a "${log_file}" 
