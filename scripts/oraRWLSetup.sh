@@ -5,6 +5,7 @@
 #   More information at: https://github.com/oracle/rwloadsim
 
 # Internal settings
+export SCRIPTDIR
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
@@ -125,6 +126,7 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
 
     # Source the RWL project environment
     rwl_env_file="${rwl_outdir}/workdir/${rwl_proj}/${rwl_proj}.env"
+    logMesg 0 "Sourcing RWL environment at: $rwl_env_file" I "NONE"
     if [ -f "${rwl_env_file}" ]; then
         # shellcheck disable=SC1090
         source "${rwl_env_file}"
@@ -135,12 +137,14 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
     fi
 
     # modify the required scripts for running
+    logMesg 0 "Setting up schema file at: $temp_dir/rwlschema.sql" I "NONE"
     temp_dir="${rwl_dir}/temp"
     [ ! -d "${temp_dir}" ] && mkdir "${temp_dir}"
     /usr/bin/cp "${rwl_dir}/admin/rwlschema.sql" "${temp_dir}"
     /usr/bin/sed -i "s/{password}/${rwl_password}/" "${temp_dir}"/rwlschema.sql
 
     # Setup the Oracle environment
+    logMesg 0 "Setting Oracle environment for: $ora_db_sid" I "NONE"
     export ORACLE_SID=${ora_db_sid}
     export ORAENV_ASK=NO
     # shellcheck disable=SC1091
@@ -155,6 +159,8 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
         rwl_file="${ora_db_data}/${ora_db_sid^^}/${ora_db_pdb}/data01.dbf" 
     fi
 
+    # build out the schema
+    logMesg 0 "Bulding schema for RWL, check log: $temp_dir/rwlschema.log" I "NONE"
     "${ORACLE_HOME}"/bin/sqlplus /nolog << !EOF > "${temp_dir}/rwlschema.log" 2>&1
 
 connect / as sysdba
@@ -168,28 +174,18 @@ connect rwloadsim/${rwl_password}@${ora_db_pdb}
 @${rwl_dir}/admin/rwlviews.sql
 !EOF
 
-    # verify the following items:
-    #  directory structure
-    oltpverify -d > "${temp_dir}/oltpverify_dir.log"
-    if grep -qE "fixed|writable" "${temp_dir}/oltpverify_dir.log"; then
-        echo "ERROR - directory sturcture for OLTP could not be verified!"
-        echo "ERROR - check log file: ${temp_dir}/oltpverify_dir.log"
-        exit 1
-    fi
-
     # verify test OLTP schemas and DB connections
     # example response where everything is good
-    # repository:ok systemdb:ok cruserdb:ok runuser:ok
-    oltpverify -a > "${temp_dir}/oltpverify_db.log"
+    # repository:ok systemdb:ok cruserdb:nottested runuser:nottested
+    oltpverify -ds > "${temp_dir}/oltpverify_db.log"
     if grep -q fail "${temp_dir}/oltpverify_db.log"; then
-        echo "ERROR - issue with database connection or setup"
-        echo "ERROR - check log file: ${temp_dir}/oltpverify_db.log"
+        logMsg 1 "issue with database connection or setup!" E "NONE"
+        logMsg 1 "check log file: ${temp_dir}/oltpverify_db.log" E "NONE"
         tail -1 "${temp_dir}/oltpverify_db.log"
     else  
-        echo "INFO - DB test status: "
+        logMsg 0 "DB connection test status success!" I "NONE"
         tail -1 "${temp_dir}/oltpverify_db.log"
     fi
-
 
     #   system access to test database
     #   repository access for RWL
@@ -203,13 +199,26 @@ connect rwloadsim/${rwl_password}@${ora_db_pdb}
     #   oltpdrop
     oltpcreate > "${temp_dir}/oltpcreate.log"
     if grep -i error "${temp_dir}/oltpcreate.log"; then
-        echo "ERROR - creating OLTP schemas and loading data"
-        echo "ERROR - check log file: ${temp_dir}/oltpcreate.log"
-        echo "ERROR - oltpdrop is being run to prepare for re-run"
+        logMsg 1 "ERROR - creating OLTP schemas and loading data" E "NONE"
+        logMsg 1 "ERROR - check log file: ${temp_dir}/oltpcreate.log" E "NONE"
+        logMsg 1 "ERROR - oltpdrop is being run to prepare for re-run" E "NONE"
         oltpdrop > "${temp_dir}/oltpdrop.log"
         exit 1
     else
-        echo "INFO - no errors detected in OLTP load"
+        logMsg 0 "INFO - no errors detected in OLTP load" I "NONE"
+    fi
+
+    # verify test OLTP everything
+    # example response where everything is good
+    # repository:ok systemdb:ok cruserdb:nottested runuser:nottested
+    oltpverify -a > "${temp_dir}/oltpverify_all.log"
+    if grep -q fail "${temp_dir}/oltpverify_all.log"; then
+        logMsg 1 "issue with OLTP setup!" E "NONE"
+        logMsg 1 "check log file: ${temp_dir}/oltpverify_all.log" E "NONE"
+        tail -1 "${temp_dir}/oltpverify_all.log"
+    else  
+        logMsg 0 "OLTP final seutp test status success!" I "NONE"
+        tail -1 "${temp_dir}/oltpverify_all.log"
     fi
 
 else

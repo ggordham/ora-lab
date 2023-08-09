@@ -6,6 +6,7 @@
 # https://github.com/oracle/rwloadsim
 #
 # Internal settings
+export SCRIPTDIR
 SCRIPTVER=1.0
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
@@ -101,7 +102,7 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
     if [ -z "${rwl_outdir:-}" ]; then rwl_outdir=$( cfgGet "$CONF_FILE" rwl_outdir ); fi
     if [ -z "${rwl_proj:-}" ]; then rwl_proj=$( cfgGet "$CONF_FILE" rwl_proj ); fi
 
-    if [ -z "${rwl_src_url:-}" ]; then rwl_src_url=$( cfgGet "$ORA_CONF_FILE" rwl_proj ); fi
+    if [ -z "${rwl_src_url:-}" ]; then rwl_src_url=$( cfgGet "$ORA_CONF_FILE" rwl_src_url ); fi
 
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_sid: $ora_db_sid" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_pdb: $ora_db_pdb" I "NONE" ; fi
@@ -133,27 +134,28 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
         cdb_url="//$( hostname -f ):1521/${ora_db_sid}"
         db_url="${cdb_url}"
     else
+        logMesg 0 "PDB defined, CDB: $ora_db_sid  PDB: $ora_db_pdb" I "NONE"
         cdb_url="//$( hostname -f ):1521/${ora_db_sid}"
         db_url="//$( hostname -f ):1521/${ora_db_pdb}"
     fi
     
     # install required GNUPlot software
-    yum -y install gnuplot
+    logMesg 0 "Installing required gnuplot RPM" I "NONE"
+    /bin/yum -y install gnuplot
     
     # install the RWL binaries
-    rwl_src_file=$( /usr/bin/basename "${rwl_src_url}" )
-    mkdir -p "${rwl_dir}"
-    wget "${rwl_src_url}" 
-    tar -xzf "${rwl_src_file}" -C $"${rwl_dir}"
+    logMesg 0 "Downloading RWL software from: $rwl_src_url" I "NONE"
+    [ ! -d "${rwl_dir}" ] && /usr/bin/mkdir -p "${rwl_dir}"
+    /usr/bin/curl -L "${rwl_src_url}" | tar xz -C "${rwl_dir}" 
     
     # setup the location files
     rwl_results=${rwl_outdir}/results/${rwl_proj}
     rwl_out=${rwl_outdir}/html/${rwl_proj}
     rwl_work=${rwl_outdir}/workdir/${rwl_proj}
     
-    mkdir -p "${rwl_results}"
-    mkdir -p "${rwl_out}"
-    mkdir -p "${rwl_work}"
+    /usr/bin/mkdir -p "${rwl_results}"
+    /usr/bin/mkdir -p "${rwl_out}"
+    /usr/bin/mkdir -p "${rwl_work}"
     
     # setup env file
     rwl_env="${rwl_work}/${rwl_proj}.env"
@@ -188,7 +190,7 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
     echo "# used during actual execution of your runs to primarily run queries against v$ tables etc" >> "${rwl_rwl}"
     echo "system_connect := \"${db_url}\";"   >> "${rwl_rwl}"
     echo "system_username := \"system\";"   >> "${rwl_rwl}"
-    echo "db_password := \"${db_password}\";"   >> "${rwl_rwl}"
+    echo "system_password := \"${db_password}\";"   >> "${rwl_rwl}"
     echo "# Generate AWR reports from root container"           >> "${rwl_rwl}"
     echo "sysawr_connect := \"${cdb_url}\";"   >> "${rwl_rwl}"
     echo "sysawr_username := \"system\";"   >> "${rwl_rwl}"
@@ -220,8 +222,8 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
     echo "rwl_daily_html := \"daily.html\";"           >> "${rwl_rwl}"
 
     # make sure the oracle user owns all the files
-    chown -R oracle:oinstall "${rwl_dir}"
-    chown -R oracle:oinstall "${rwl_outdir}"
+    /usr/bin/chown -R oracle:oinstall "${rwl_dir}"
+    /usr/bin/chown -R oracle:oinstall "${rwl_outdir}"
 
 else
     echo "ERROR - invalid command line parameters" >&2
