@@ -110,7 +110,7 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_dir: $rwl_dir" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_outdir: $rwl_outdir" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "rwl_src_url: $rwl_src_url" I "NONE" ; fi
-    
+   
     # Lookup password for database
     secret_name="db_all_${ora_db_sid}"
     db_password=$( getSecret "${secret_name}" )
@@ -127,6 +127,8 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
         exit 1
     fi
 
+    # fix the oraRWLRun.sh script so Oracle user can run it
+    if [ -f "${SCRIPTDIR}/oraRWLRun.sh" ] && /usr/bin/chown oracle "${SCRIPTDIR}/oraRWLRun.sh"
 
     # Adjust based on if PDB is configured or not
     if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then

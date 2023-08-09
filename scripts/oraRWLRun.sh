@@ -126,10 +126,13 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
         exit 1
     fi
 
+    # Setup directories / file locations
     rwl_bindir="$( dirname "$( /usr/bin/which oltpverify )" )"
-
-    temp_dir=/home/oracle/temp
+    temp_dir="${rwl_outdir}/temp"
+    [ ! -d "${temp_dir}" ] && /usr/bin/mkdir -p "${temp_dir}"  
     log_file=${temp_dir}/oltprun-$( date +%Y%m%d-%H%M%S ).log
+    logMesg 0 " RWL binaries at: $rwl_bindir" I "NONE"
+    logMesg 0 " RWL temp directory at: $rwl_bindir" I "NONE"
 
     # Run OLTP Verify to make sure everything is good
     if [ "$NOVERIFY" == "FALSE" ]; then 
@@ -151,7 +154,8 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then 
         logMesg 0 "TEST Mode RWL OLTP command: ${rwl_bindir}/oltpcore ${rwl_cmd_opts}" I "NONE"
     else
-        "${rwl_bindir}"/oltpcore  ${rwl_cmd_opts} > "${log_file}"
+        cd "${temp_dir}" || logMesg 1 "Could not change to temp dir: $temp_dir" E "NONE"
+        "${rwl_bindir}/oltpcore"  ${rwl_cmd_opts} > "${log_file}"
         logMesg 0 "oltpcore complete with return code: $?"  I "NONE"
     fi
 

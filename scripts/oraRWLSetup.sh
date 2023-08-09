@@ -179,11 +179,11 @@ connect rwloadsim/${rwl_password}@${ora_db_pdb}
     # repository:ok systemdb:ok cruserdb:nottested runuser:nottested
     oltpverify -ds > "${temp_dir}/oltpverify_db.log"
     if grep -q fail "${temp_dir}/oltpverify_db.log"; then
-        logMsg 1 "issue with database connection or setup!" E "NONE"
-        logMsg 1 "check log file: ${temp_dir}/oltpverify_db.log" E "NONE"
+        logMesg 1 "issue with database connection or setup!" E "NONE"
+        logMesg 1 "check log file: ${temp_dir}/oltpverify_db.log" E "NONE"
         tail -1 "${temp_dir}/oltpverify_db.log"
     else  
-        logMsg 0 "DB connection test status success!" I "NONE"
+        logMesg 0 "DB connection test status success!" I "NONE"
         tail -1 "${temp_dir}/oltpverify_db.log"
     fi
 
@@ -199,13 +199,13 @@ connect rwloadsim/${rwl_password}@${ora_db_pdb}
     #   oltpdrop
     oltpcreate > "${temp_dir}/oltpcreate.log"
     if grep -i error "${temp_dir}/oltpcreate.log"; then
-        logMsg 1 "ERROR - creating OLTP schemas and loading data" E "NONE"
-        logMsg 1 "ERROR - check log file: ${temp_dir}/oltpcreate.log" E "NONE"
-        logMsg 1 "ERROR - oltpdrop is being run to prepare for re-run" E "NONE"
+        logMesg 1 "ERROR - creating OLTP schemas and loading data" E "NONE"
+        logMesg 1 "ERROR - check log file: ${temp_dir}/oltpcreate.log" E "NONE"
+        logMesg 1 "ERROR - oltpdrop is being run to prepare for re-run" E "NONE"
         oltpdrop > "${temp_dir}/oltpdrop.log"
         exit 1
     else
-        logMsg 0 "INFO - no errors detected in OLTP load" I "NONE"
+        logMesg 0 "INFO - no errors detected in OLTP load" I "NONE"
     fi
 
     # verify test OLTP everything
@@ -213,11 +213,11 @@ connect rwloadsim/${rwl_password}@${ora_db_pdb}
     # repository:ok systemdb:ok cruserdb:nottested runuser:nottested
     oltpverify -a > "${temp_dir}/oltpverify_all.log"
     if grep -q fail "${temp_dir}/oltpverify_all.log"; then
-        logMsg 1 "issue with OLTP setup!" E "NONE"
-        logMsg 1 "check log file: ${temp_dir}/oltpverify_all.log" E "NONE"
+        logMesg 1 "issue with OLTP setup!" E "NONE"
+        logMesg 1 "check log file: ${temp_dir}/oltpverify_all.log" E "NONE"
         tail -1 "${temp_dir}/oltpverify_all.log"
     else  
-        logMsg 0 "OLTP final seutp test status success!" I "NONE"
+        logMesg 0 "OLTP final seutp test status success!" I "NONE"
         tail -1 "${temp_dir}/oltpverify_all.log"
     fi
 

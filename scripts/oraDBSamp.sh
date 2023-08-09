@@ -170,9 +170,9 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
 
     # update path in scripts to target directory
     logMesg 0 "Updating scripts with installed path" I "NONE"
+    cd "${tgt_dir}" || logMesg 1 "Error, could not change to directory: ${tgt_dir}" E "NONE"
     /usr/bin/find "${tgt_dir}" -type f \( -name "*.sql" -o -name "*.dat" \) -exec /bin/sed -i "s#__SUB__CWD__#${tgt_dir}#g" {} \;
 
-    cd "${tgt_dir}" || logMesg 1 "Error, could not find directory: ${tgt_dir}" E "NONE"
     sql_log_dir="${tgt_dir}/log"
     [ ! -d "${sql_log_dir}" ] && /usr/bin/mkdir -p "${sql_log_dir}"
     sql_log_file="${sql_log_dir}/mksample-$( date +%Y%m%d-%H%M%S ).log"
