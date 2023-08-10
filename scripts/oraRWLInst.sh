@@ -128,7 +128,7 @@ if checkopt_oraRWLInst "$OPTIONS" ; then
     fi
 
     # fix the oraRWLRun.sh script so Oracle user can run it
-    if [ -f "${SCRIPTDIR}/oraRWLRun.sh" ] && /usr/bin/chown oracle "${SCRIPTDIR}/oraRWLRun.sh"
+    [ -f "${SCRIPTDIR}/oraRWLRun.sh" ] && /usr/bin/chown oracle "${SCRIPTDIR}/oraRWLRun.sh"
 
     # Adjust based on if PDB is configured or not
     if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
