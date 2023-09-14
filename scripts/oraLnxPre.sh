@@ -139,7 +139,7 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
             sudo su -c "echo 'LABEL=${label} ${mount} ${fs_type} defaults 0 0' >> /etc/fstab"
             sudo sh -c "/bin/mount ${mount}"
         else
-            logMesg 1 "Cloud not find block device:$disk " E "NONE"
+            logMesg 1 "Could not find block device:$disk " E "NONE"
             exit 1
         fi
     done
