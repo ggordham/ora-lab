@@ -96,7 +96,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # Default the ora_type to database to perserve original design of script
-    if [ -z "${ora_type}" ]; then ora_type=DB; fi
+    if [ -z "${ora_type:-}" ]; then ora_type=DB; fi
     # make sure parameter is uppercase
     ora_type=${ora_type^^}
     # check install type
