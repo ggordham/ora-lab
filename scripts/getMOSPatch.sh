@@ -149,6 +149,7 @@ if [ ! -f "$CFG" ] || [ "$p_reset" == "yes" ] ; then
     # Prompt the user to select a language / platform code
     echo "Available Platforms and Languages:"
     grep -A999 "<select name=plat_lang" "$TMP1" | grep "^<option"| grep -v "\-\-\-" | awk -F "[\">]" '{print $2" - "$4}' > "$TMP2"
+    cat "$TMP2"
     read -rp "Comma-delimited list of required platform and language codes: " PlatLangCodes;
     echo "$PlatLangCodes" > "$CFG"
     for PLATLANG in $( echo "$PlatLangCodes" | sed "s/,/ /g" | xargs -n 1 echo )

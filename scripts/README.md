@@ -47,6 +47,10 @@ Notes:
 Start of a script that will orchestrate the full build out of an Oracle database server by walking through the steps set in a server.conf file.
 This is currently a skelleton script and will be worked into a more formal script in the future.
 
+TODO
+ - make this a more robust full kick off script
+ - add feature to install multiple oracle homes and grid home
+
 -------------------------------------------------------------
 
 ## get-ora-lab.sh
@@ -116,6 +120,7 @@ oraSwStg.sh
 
 Usage: oraSwStg.sh [-h --debug --test ]
 -h          give this help screen
+--oratype [grid | db]
 --oraver [Oracle version]
 --orasubver [Oracle minor version]
 --orabase [Oracle base]
@@ -132,6 +137,9 @@ Sample testing command line
 ```
 oraSwStg.sh --oraver 19 --orasubver 19_9 --stgdir /u01/app/stage --srcdir /mnt/software/Oracle/database/19c --orabase /u01/app/oracle --orahome /u01/app/oracle/product/19/dbhome_1 --test`
 ```
+
+TODO
+ - Test GRID software staging
 
 -------------------------------------------------------------
 
@@ -166,6 +174,7 @@ TODO
 - Add error checking to critical steps in scripts
 - Add to oraSwStg.sh return code for software satge vs patch stage status
 - Add support for legacy non-unzip home process
+- Add support for GRID software install for stand alone
 
 
 -------------------------------------------------------------
@@ -236,6 +245,9 @@ Usage: oraORDS.sh [-h --debug --test ]
 --test      turn on test mode
 --version | -v Show the script version
 ```
+
+TODO
+ - Fix DB install part that is not working, have to uninstall and reinstall ORDS.
 
 -------------------------------------------------------------
 
@@ -373,6 +385,7 @@ Note: when doing RU patches be sure to be specific, E.G. to get 19.10 use 1910 n
 
 TODO
 - replace wget with curl to remove dependency
+- add more error checking and messages when login screen is returned vs getting a file.
 
 -------------------------------------------------------------
 

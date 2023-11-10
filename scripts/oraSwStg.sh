@@ -18,6 +18,7 @@ function help_oraSwStg {
   echo >&2
   echo "Usage: $SCRIPTNAME [-h --debug --test ]        " >&2
   echo "-h          give this help screen               " >&2
+  echo "--oratype [grid | db]                           " >&2
   echo "--oraver [Oracle version]                       " >&2
   echo "--orasubver [Oracle minor version]              " >&2
   echo "--orabase [Oracle base]                         " >&2
@@ -38,7 +39,7 @@ function checkopt_oraSwStg {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,srcdir:,oraver:,orasubver:,stgdir:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,srcdir:,oratype:,oraver:,orasubver:,stgdir:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -47,6 +48,8 @@ function checkopt_oraSwStg {
             case $1 in
                "-h") help_oraSwStg                          #  help
                      exit 1;;
+          "--oratype") ora_type="$2"
+                     shift 2;;
           "--oraver") ora_ver="$2"
                      shift 2;;
           "--orasubver") ora_sub_ver="$2"
@@ -92,16 +95,30 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
+    # Default the ora_type to database to perserve original design of script
+    if [ -z "${ora_type}" ]; then ora_type=DB;
+    # make sure parameter is uppercase
+    ora_type=${ora_type^^}
+    # check install type
+    case "${ora_type}" in
+       "DB") conf_var=ora;;
+       "GRID") conf_var=grid;;
+       *) logMesg 1 "Incorrect install type (oratype) of: ${ora_type}" E "NONE";
+          exit 1;;
+      esac
+
+    logMsg 0 "Install type of: $ora_type" "NONE"
+
     # Get settings from server config file if not set on command line
-    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver ); fi
-    if [ -z "${ora_subver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" srvr_ora_subver ); fi
-    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
+    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_ver" ); fi
+    if [ -z "${ora_subver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_subver" ); fi
+    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" "srvr_${conf_ver}_home" ); fi
     # For oracle home we have a default setting if it is not set
     if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
 
     # check for settings that can be in server config or default config
     if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir ); fi
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" "srvr_${conf_var}_base" "$DEF_CONF_FILE" "${conf_var}_base" ); fi
     ora_inst=$( /usr/bin/dirname "${ora_base}" )
 
     # Provide some infomration if in test mode
@@ -126,7 +143,11 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
         install_type=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_install_type" )
-        main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_main" )
+        case "${ora_type}" in
+           "DB") main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_db" );;
+           "GRID") main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_grid" );;
+          esac
+
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "install_type: $install_type" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "main_file: $main_file" I "NONE" ; fi
 
@@ -163,7 +184,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         # if legacy runinstall, make staging software location
         if [ "$install_type" == "runinstall" ]; then
             # legacy runinstall setup, stage software
-            /usr/bin/mkdir -p "${stg_dir}/oramedia"
+            /usr/bin/mkdir -p "${stg_dir}/${conf_var}media"
             /usr/bin/chown -R oracle:oinstall "${stg_dir}"
         fi
 
@@ -192,8 +213,14 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
         # Stage the Oracle patches
         # looking up RU patches
-        ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
-        one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
+        case "${ora_type}" in
+           "DB") 
+               ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
+               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" );;
+           "GRID") 
+               ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_OCW" )
+               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_OCW_ONEOFF" );;
+         esac
 
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
@@ -202,6 +229,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         # getMOSPatch requires wget
         # /bin/yum -y install wget  # perl no longer needed by v 1.3 of getMOSPatch.sh
         logMesg 0 "Downloading Oracle patches" I "NONE"
+        # Note for future: "541P;Linux ARM 64-bit"
         echo "226P;Linux x86-64" > "${SCRIPTDIR}/.getMOSPatch.sh.cfg"
         mosUser=$( cfgGet "${SCRIPTDIR}/secure.conf" "MOSUSER" )
         mosPass=$( cfgGet "${SCRIPTDIR}/secure.conf" "MOSPASS" )
@@ -230,7 +258,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                 if (( error_code == 0 )); then
                     p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                     [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-                    [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${stg_dir}/patch ${p_file}"
+                    [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file}" -d ${stg_dir}/patch
                 else
                     logMesg 0 "Could not download patch: $p_patch" E "NONE"
                 fi 
@@ -262,13 +290,13 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                         p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_file: $p_file" I "NONE" ; fi
                         [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${stg_dir}/patch ${p_file}"
+                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file}" -d ${stg_dir}/patch
                     else
                         logMesg 0 "Could not download opatch: $p_patch" E "NONE"
                     fi 
                     # if unzip install type then update OPatch in place
                     if [ "$install_type" == "unzip" ]; then
-                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ora_home} ${p_file}"
+                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file}" -d ${ora_home}
                     fi
                 fi
             fi # end of OPatch work

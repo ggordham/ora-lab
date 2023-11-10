@@ -115,9 +115,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
         install_type=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_install_type" )
-        main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_main" )
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "install_type: $install_type" I "NONE" ; fi
-        if [ "$TEST" == "TRUE" ]; then logMesg 0 "main_file: $main_file" I "NONE" ; fi
 
         # check if src_dir is set otherwise pull from default setting
         if [ -z "${src_dir:-}" ]; then 

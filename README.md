@@ -46,9 +46,21 @@ This script can use NFS mount for the staging.
     7. nfs_mount = # Full NFS path to the mount and server NFS is shared from
     8. mount_path = # location to temporaryly mount the NFS on the proxmox server
 3. Run the script as the root user on the proxmox server
+
 ```bash
 ./pve-mk-template.sh
 ```
+
+*Example tempalte making commands*
+
+```bash
+./pve-mk-template.sh 9028 v9028oel8T OL8U6_x86_64-kvm-b141.qcow2
+
+./pve-mk-template.sh 9029 v9029oel9T OL9U0_x86_64-kvm-b142.qcow2
+
+./pve-mk-template.sh 9027 v9027oel7T OL7U9_x86_64-kvm-b145.qcow2
+```
+
 ## Part III configure / stage Terraform files
 
 Files that need to be configured / created

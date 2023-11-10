@@ -28,7 +28,8 @@ function run_step {
   fi
   logMesg 0 "==== step ${my_step_name} script: ${my_step_script} Start " I "${my_log_file}"
   logMesg 0 "  options ${my_step_options} " I "${my_log_file}"
-  /usr/bin/sudo -u "${my_step_owner}" sh -c "cd /home/${my_step_owner}; ${SCRIPTDIR}/${my_step_script} ${my_step_options} >> ${my_log_file} 2>&1"
+  if [ "${my_step_owner}" == "root" ]; then my_step_home="/root"; else my_step_home="/home/${my_step_owner}"; fi
+  /usr/bin/sudo -u "${my_step_owner}" sh -c "cd ${my_step_home}; ${SCRIPTDIR}/${my_step_script} ${my_step_options} >> ${my_log_file} 2>&1"
   my_return=$?
   logMesg 0 "==== ${my_step_script} Finished.  Return code: $my_return " I "${my_log_file}"
 

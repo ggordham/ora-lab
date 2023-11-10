@@ -176,7 +176,7 @@ if checkopt_oraORDS "$OPTIONS" ; then
         /usr/bin/chown oracle:oinstall "${ords_logs}"
  
         # load the ORDS software
-        /usr/bin/unzip "${ords_src}" -d "${ords_path}"
+        /usr/bin/su oracle -c "/usr/bin/unzip ${ords_src} -d ${ords_path}"
  
         # Install ORDS into the database
         logMesg "ORDS CONFIG: ${ORDS_CONFIG}" I "NONE"
