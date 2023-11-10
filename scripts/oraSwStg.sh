@@ -105,7 +105,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
        "GRID") conf_var=grid;;
        *) logMesg 1 "Incorrect install type (oratype) of: ${ora_type}" E "NONE";
           exit 1;;
-      esac
+    esac
 
     logMsg 0 "Install type of: $ora_type" "NONE"
 
@@ -201,7 +201,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                     "runinstall")
                         # for legacy runisntall setup stage media
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "not staging runinstall $m_file to $stg_dir" I "NONE" 
-                          else /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${stg_dir} ${src_dir}/${m_file}"; fi
+                          else /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${src_dir}/${m_file} -d ${stg_dir}"; fi
                         ;;
                     *)
                         logMesg 1 "Unsupported install type $install_type" E "NONE";;
@@ -231,8 +231,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         logMesg 0 "Downloading Oracle patches" I "NONE"
         # Note for future: "541P;Linux ARM 64-bit"
         echo "226P;Linux x86-64" > "${SCRIPTDIR}/.getMOSPatch.sh.cfg"
-        mosUser=$( cfgGet "${SCRIPTDIR}/secure.conf" "MOSUSER" )
-        mosPass=$( cfgGet "${SCRIPTDIR}/secure.conf" "MOSPASS" )
+        mosUser=$( getSecret "MOSUSER" )
+        mosPass=$( getSecret "MOSPASS" )
         export mosUser mosPass
 
         # Generate a list of patches for RU and One Offs
@@ -258,7 +258,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                 if (( error_code == 0 )); then
                     p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                     [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-                    [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file}" -d ${stg_dir}/patch
+                    [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
                 else
                     logMesg 0 "Could not download patch: $p_patch" E "NONE"
                 fi 
@@ -290,13 +290,13 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                         p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_file: $p_file" I "NONE" ; fi
                         [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file}" -d ${stg_dir}/patch
+                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
                     else
                         logMesg 0 "Could not download opatch: $p_patch" E "NONE"
                     fi 
                     # if unzip install type then update OPatch in place
                     if [ "$install_type" == "unzip" ]; then
-                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file}" -d ${ora_home}
+                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file} -d ${ora_home}"
                     fi
                 fi
             fi # end of OPatch work
