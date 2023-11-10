@@ -96,7 +96,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
     # Default the ora_type to database to perserve original design of script
-    if [ -z "${ora_type}" ]; then ora_type=DB;
+    if [ -z "${ora_type}" ]; then ora_type=DB; fi
     # make sure parameter is uppercase
     ora_type=${ora_type^^}
     # check install type
@@ -112,7 +112,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     # Get settings from server config file if not set on command line
     if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_ver" ); fi
     if [ -z "${ora_subver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_subver" ); fi
-    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" "srvr_${conf_ver}_home" ); fi
+    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_home" ); fi
     # For oracle home we have a default setting if it is not set
     if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
 
@@ -146,7 +146,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         case "${ora_type}" in
            "DB") main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_db" );;
            "GRID") main_file=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_grid" );;
-          esac
+        esac
 
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "install_type: $install_type" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "main_file: $main_file" I "NONE" ; fi
@@ -220,7 +220,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
            "GRID") 
                ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_OCW" )
                one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_OCW_ONEOFF" );;
-         esac
+        esac
 
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
