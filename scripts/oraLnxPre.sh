@@ -30,6 +30,7 @@ function help_oraLnxPre {
   echo "--lsnp  [Oracle Listener Port]                  " >&2
   echo "--pkgs  [Linux packages to install]             " >&2
   echo "--pkgt  [Linux package tool]                    " >&2
+  echo "--guser Create grid user and ASM groups         " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
@@ -42,10 +43,11 @@ function checkopt_oraLnxPre {
     DEBUG=FALSE
     TEST=FALSE
     SFT_MOUNT=TRUE
+    grid_user=FALSE
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,sftno,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,sftno,guser,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -72,6 +74,8 @@ function checkopt_oraLnxPre {
                      shift 2;;
            "--pkgt") lnx_pkg_tool="$2"
                      shift 2;;
+          "--guser") grid_user=TRUE
+                     shift ;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
                      shift ;;
@@ -116,6 +120,10 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGetD "$CONF_FILE" srvr_lnx_pkgs  "$DEF_CONF_FILE" lnx_pkgs ); fi
     if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGetD "$CONF_FILE" srvr_lnx_pkg_tool  "$DEF_CONF_FILE" lnx_pkg_tool ); fi
 
+    # check if grid user and group settings are in the config file
+    cfg_grid_user=$( cfgGetD "$CONF_FILE" srvr_lnx_pkg_tool  "$DEF_CONF_FILE" lnx_pkg_tool );
+    if [ "${cfg_grid_user}" != "__UNDEFINED__" ]; then grid_user="${cfg_grid_user}"; fi
+
     # output some test information
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "disk_list: $disk_list" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "fs_type: $fs_type" I "NONE" ; fi
@@ -125,6 +133,7 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lsnr_port: $lsnr_port" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkgs: $lnx_pkgs" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkg_tool: $lnx_pkg_tool" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "grid_user: $grid_user" I "NONE" ; fi
 
     # setup local disks
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
@@ -166,6 +175,18 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         logMesg 0 "RNGD not installed, skipping enablement" I "NONE"
     fi
 
+    # Add grid user and ASM groups if needed
+    if [ "$grid_user" == "TRUE" ]; then
+        logMesg 0 "Adding grid user and ASM groups " I "NONE"
+        /sbin/groupadd -g 54327 asmdba
+        /sbin/groupadd -g 54328 asmoper
+        /sbin/groupadd -g 54329 asmadmin
+        /sbin/useradd -N -s /bin/bash -i 54331 -g oinstall -G asmdba,asoper,asmadmin grid 
+        
+        logMesg 0 "Adding oracle user to all ASM groups " I "NONE"
+        /sbin/usermod -aG asmdba,asmoper,asmadmin oracle
+    fi
+    
     # Configure firewalld for Oracle Listener
     logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
     sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
