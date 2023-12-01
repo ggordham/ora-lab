@@ -123,7 +123,7 @@ clean_wgetrc
 echo "user=$mosUser" >> ~/.wgetrc
 echo "password=$mosPass" >> ~/.wgetrc
 set +e
-wget --save-cookies="$COOK" --keep-session-cookies --no-check-certificate "https://updates.oracle.com/Orion/SimpleSearch/switch_to_saved_searches" -O "$TMP1" -o "$TMP2" --no-verbose
+wget --secure-protocol=auto --save-cookies="$COOK" --keep-session-cookies "https://updates.oracle.com/Orion/SimpleSearch/switch_to_saved_searches" -O "$TMP1" -o "$TMP2" --no-verbose
 RESULT=$?
 clean_wgetrc
 
@@ -242,7 +242,7 @@ if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' 
         # get the patch filename from the download URL and see if it already exists and is healthy
         fname=$( echo "$URL" | awk -F"=" '{print $NF;}' | sed "s/[?&]//g" )
         if [ -f "$fname" ]; then
-            unzip -t -qq "$fname" || rm "$fname"
+            unzip -t -qq "$fname" >/dev/null 2>&1 || rm "$fname"
         fi
        
         # if the file already exists, check if a newer version is available for download
@@ -257,6 +257,8 @@ if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' 
         else
             echo "Downloading file $fname ..."
             curl -R -b "$COOK" -c "$COOK" --insecure --output "$fname" -L "$URL"
+            if [ "$p_debug" ] && [ "$p_debug" == "yes" ]; then echo "running: wget --load-cookies=$COOK $URL -O $fname"; fi
+            wget --load-cookies="$COOK" "$URL" -O "$fname"
             RESULT=$?
             echo "$fname completed with status: $?"
         fi
