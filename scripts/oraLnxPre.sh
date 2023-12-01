@@ -121,8 +121,9 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGetD "$CONF_FILE" srvr_lnx_pkg_tool  "$DEF_CONF_FILE" lnx_pkg_tool ); fi
 
     # check if grid user and group settings are in the config file
-    cfg_grid_user=$( cfgGetD "$CONF_FILE" srvr_lnx_pkg_tool  "$DEF_CONF_FILE" lnx_pkg_tool );
-    if [ "${cfg_grid_user}" != "__UNDEFINED__" ]; then grid_user="${cfg_grid_user}"; fi
+    # TRUE anywhere overides false in this case
+    cfg_grid_user=$( cfgGetD "$CONF_FILE" srvr_grid_user  "$DEF_CONF_FILE" grid_user );
+    if [ "${cfg_grid_user^^}" == "TRUE" ] || [ "${grid_user}" == "TRUE" ]; then grid_user="TRUE"; fi
 
     # output some test information
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "disk_list: $disk_list" I "NONE" ; fi
@@ -185,6 +186,9 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         
         logMesg 0 "Adding oracle user to all ASM groups " I "NONE"
         /sbin/usermod -aG asmdba,asmoper,asmadmin oracle
+
+        # for grid install, listener configuration has issues with IPv6 line in hosts file
+        /bin/sed -i "/^::1 $( /bin/hostname )/d" /etc/hosts
     fi
     
     # Configure firewalld for Oracle Listener
