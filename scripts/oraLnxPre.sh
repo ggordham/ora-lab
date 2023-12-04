@@ -190,7 +190,17 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         # for grid install, listener configuration has issues with IPv6 line in hosts file
         /bin/sed -i "/^::1 $( /bin/hostname )/d" /etc/hosts
     fi
-    
+
+    # make additional oradata folders
+    for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
+        mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
+        if [ "${mount}" != "/u01" ]; then
+             sudo sh -c "/bin/mkdir -p ${mount}/oradata"
+             sudo sh -c "/usr/bin/chown oracle ${mount}/oradata"
+             sudo sh -c "/usr/bin/chgrp oinstall ${mount}/oradata"
+        fi
+    done
+     
     # Configure firewalld for Oracle Listener
     logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
     sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
