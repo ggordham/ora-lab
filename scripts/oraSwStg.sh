@@ -107,7 +107,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
           exit 1;;
     esac
 
-    logMsg 0 "Install type of: $ora_type" "NONE"
+    logMesg 0 "Install type of: $ora_type" "NONE"
 
     # Get settings from server config file if not set on command line
     if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_ver" ); fi

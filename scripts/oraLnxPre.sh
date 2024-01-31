@@ -196,14 +196,16 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
         if [ "${mount}" != "/u01" ]; then
              sudo sh -c "/bin/mkdir -p ${mount}/oradata"
-             sudo sh -c "/usr/bin/chown oracle ${mount}/oradata"
-             sudo sh -c "/usr/bin/chgrp oinstall ${mount}/oradata"
+             sudo sh -c "/usr/bin/chown 54321 ${mount}/oradata"
+             sudo sh -c "/usr/bin/chgrp 54321 ${mount}/oradata"
         fi
     done
      
     # Configure firewalld for Oracle Listener
     logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
     sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
+    # configure firewall for NFS
+    sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-service=nfs
     sudo sh -c "/bin/firewall-cmd --reload"
 
     # Setup software mount

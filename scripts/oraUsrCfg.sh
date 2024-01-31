@@ -105,6 +105,9 @@ alias cdoh='cd \$ORACLE_HOME'
         logMesg 0 "Installing additional SSH keys" I "NONE"
         echo "${ssh_keys}" >> /home/cloud-user/.ssh/authorized_keys
         echo "${ssh_keys}" >> /home/oracle/.ssh/authorized_keys
+        /usr/bin/chown oracle /home/oracle/.ssh/authorized_keys
+        /usr/bin/chgrp oinstall /home/oracle/.ssh/authorized_keys
+        /usr/bin/chmod 640 /home/oracle/.ssh/authorized_keys
     fi
 
     logMesg 0 "${SCRIPTNAME} finished" I "NONE"
