@@ -150,14 +150,20 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
     # shellcheck disable=SC1091
     source /usr/local/bin/oraenv -s
 
-    # Adjust based on if PDB is configured or not
-    if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
-        logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
-        rwl_file="${ora_db_data}/${ora_db_sid}/data01.dbf" 
+    # decide if ASM is in use
+    if [ "${ora_db_data:0:1}" == "+" ]; then
+        # ASM in use no need to worry about file paths
+        rwl_file="${ora_db_data}"
     else
-        export ORACLE_PDB_SID=${ora_db_pdb}
-        rwl_file="${ora_db_data}/${ora_db_sid^^}/${ora_db_pdb}/data01.dbf" 
-    fi
+        # Adjust based on if PDB is configured or not
+        if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
+            logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
+            rwl_file="${ora_db_data}/${ora_db_sid}/data01.dbf" 
+        else
+            export ORACLE_PDB_SID=${ora_db_pdb}
+            rwl_file="${ora_db_data}/${ora_db_sid^^}/${ora_db_pdb}/data01.dbf" 
+        fi
+    fi # check for ASM
 
     # build out the schema
     logMesg 0 "Bulding schema for RWL, check log: $temp_dir/rwlschema.log" I "NONE"

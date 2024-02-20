@@ -25,7 +25,7 @@ function help_oraRWLRun {
   echo "--outdir  [RWL output directory]                " >&2
   echo "--noverify  Skip RWL schema verification step   " >&2
   echo "--debug     turn on debug mode                  " >&2
-  echo "--test      turn on test mode, disable DBCA run " >&2
+  echo "--test      turn on test mode, do not run       " >&2
   echo "--version | -v Show the script version          " >&2
   echo "                                                " >&2
   echo " Note: outdir is also location of RWL project   " >&2
