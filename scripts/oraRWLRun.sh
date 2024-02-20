@@ -24,6 +24,7 @@ function help_oraRWLRun {
   echo "--proc    [Number of processes to start]        " >&2
   echo "--outdir  [RWL output directory]                " >&2
   echo "--noverify  Skip RWL schema verification step   " >&2
+  echo "--add     additional command options for RWL    " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, do not run       " >&2
   echo "--version | -v Show the script version          " >&2
@@ -41,7 +42,7 @@ function checkopt_oraRWLRun {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,noverify,dbsid:,proj:,sec:,proc:,outdir: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,add:,noverify,dbsid:,proj:,sec:,proc:,outdir: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -62,6 +63,8 @@ function checkopt_oraRWLRun {
                      shift 2;;
            "--noverify") NOVERIFY=TRUE                           # test mode
                      shift ;;
+          "--add") rwl_add_opt="$2"
+                     shift 2;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
                      shift ;;
@@ -147,7 +150,7 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
     if [ "$rwl_proc" == "__UNDEFINED__" ] || [ -z "$rwl_proc" ]; then
         logMesg 0 "Number of processes not defined defaulting to 1" I "NONE"
     else
-        rwl_cmd_opts="${rwl_cmd_opts} -n ${rwl_proc}"
+        rwl_cmd_opts="${rwl_cmd_opts} -n ${rwl_proc} ${rwl_add_opt}"
     fi
     
     # Run the OLTP workload

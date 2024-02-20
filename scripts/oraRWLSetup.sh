@@ -174,7 +174,7 @@ connect / as sysdba
 
 CREATE TABLESPACE DATA DATAFILE '${rwl_file}' SIZE 6G;
 
-connect rwloadsim/${rwl_password}@${ora_db_pdb}
+connect rwloadsim/${rwl_password}@${rwl_proj}
 
 @${rwl_dir}/admin/rwloadsim.sql
 @${rwl_dir}/admin/rwlviews.sql
