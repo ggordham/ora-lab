@@ -182,7 +182,7 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         /sbin/groupadd -g 54327 asmdba
         /sbin/groupadd -g 54328 asmoper
         /sbin/groupadd -g 54329 asmadmin
-        /sbin/useradd -N -s /bin/bash -i 54331 -g oinstall -G asmdba,asoper,asmadmin grid 
+        /sbin/useradd -N -s /bin/bash -u 54331 -g oinstall -G asmdba,asmoper,asmadmin grid 
         
         logMesg 0 "Adding oracle user to all ASM groups " I "NONE"
         /sbin/usermod -aG asmdba,asmoper,asmadmin oracle
