@@ -4,7 +4,7 @@
 
 # Internal settings, export empty variable that is set by library
 export SCRIPTDIR
-SCRIPTVER=1.0
+SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 error_code=0
@@ -101,8 +101,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     ora_type=${ora_type^^}
     # check install type
     case "${ora_type}" in
-       "DB") conf_var=ora;;
-       "GRID") conf_var=grid;;
+       "DB") conf_var=ora;    conf_user=oracle;;
+       "GRID") conf_var=grid; conf_user=grid;;
        *) logMesg 1 "Incorrect install type (oratype) of: ${ora_type}" E "NONE";
           exit 1;;
     esac
@@ -113,11 +113,13 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_ver" ); fi
     if [ -z "${ora_sub_ver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_subver" ); fi
     if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_home" ); fi
+
     # For oracle home we have a default setting if it is not set
-    if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+    if [ "${ora_type}" == "DB" ] && ( [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ); then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+    if [ "${ora_type}" == "GRID" ] && ( [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ); then ora_home="$( /usr/bin/dirname "${ora_base}" )/${ora_ver}/grid_1"; fi
 
     # check for settings that can be in server config or default config
-    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir ); fi
+    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" "srvr_stg_${conf_var}_dir" "$DEF_CONF_FILE" "stg_${conf_var}_dir" ); fi
     if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" "srvr_${conf_var}_base" "$DEF_CONF_FILE" "${conf_var}_base" ); fi
     ora_inst=$( /usr/bin/dirname "${ora_base}" )
 
@@ -162,20 +164,27 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         preinstall_rpm=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_pre_install" )
         if [ "$preinstall_rpm" == "__UNDEFINED__" ]; then logMesg 1 "Pre Install RPM not found for $ora_ver" E "NONE"; fi
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "preinstall_rpm: $preinstall_rpm" I "NONE" 
+          elif [ -f /usr/bin/dnf ]; then /usr/bin/dnf -y install "${preinstall_rpm}"
           else /bin/yum -y install "${preinstall_rpm}"; fi
+
+        # Setup grid user OS limits
+        if [ "${ora_type}" == "GRID" ] && [ ! -f /etc/security/limits.d/oracle-grid-preinstall-19c.conf ]; then
+            /bin/cp /etc/security/limits.d/oracle-database-preinstall-19c.conf /etc/security/limits.d/oracle-grid-preinstall-19c.conf
+            /bin/sed -i 's/^oracle./grid/g' /etc/security/limits.d/oracle-grid-preinstall-19c.conf
+        fi
 
         logMesg 0 "Creating install directories" I "NONE"
         # Setup the required directories for install
         if [ "${ora_base}" != "__UNDEFINED__" ]; then /usr/bin/mkdir -p "${ora_base}"; else error_code=3; fi
         if [ "${ora_home}" != "__UNDEFINED__" ]; then /usr/bin/mkdir -p "${ora_home}"; else error_code=3; fi
         if [ "${ora_inst}" != "__UNDEFINED__" ]; then /usr/bin/mkdir -p "${ora_inst}"; else error_code=3; fi
-        [ -d "${ora_base}" ] && /usr/bin/chown -R oracle:oinstall "${ora_base}"
-        [ -d "${ora_home}" ] && /usr/bin/chown -R oracle:oinstall "${ora_home}"
-        [ -d "${ora_inst}" ] && /usr/bin/chown -R oracle:oinstall "${ora_inst}"
+        [ -d "${ora_base}" ] && /usr/bin/chown -R "${conf_user}":oinstall "${ora_base}"
+        [ -d "${ora_home}" ] && /usr/bin/chown -R "${conf_user}":oinstall "${ora_home}"
+        [ -d "${ora_inst}" ] && /usr/bin/chown -R "${conf_user}":oinstall "${ora_inst}"
         if (( error_code > 0 )); then logMesg 1 "Failed to setup ora_base: $ora_base ora_home: $ora_home ora_inst: $ora_inst" E "NONE"; fi
 
-        # make sure stage directory is owned by Oracle user
-        /usr/bin/chown -R oracle:oinstall "${stg_dir}"
+        # make sure stage directory is owned by software owner user
+        /usr/bin/chown -R "${conf_user}":oinstall "${stg_dir}"
         if [ ! -d "${stg_dir}" ]; then 
             logMesg 1 "could not access stage directory: $stg_dir" E "NONE" 
             exit 1
@@ -185,7 +194,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         if [ "$install_type" == "runinstall" ]; then
             # legacy runinstall setup, stage software
             /usr/bin/mkdir -p "${stg_dir}/${conf_var}media"
-            /usr/bin/chown -R oracle:oinstall "${stg_dir}"
+            /usr/bin/chown -R "${conf_user}":oinstall "${stg_dir}"
         fi
 
         logMesg 0 "Staging Oracle database software" I "NONE"
@@ -196,12 +205,12 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                     "unzip")
                         # for 18c and above unzip the source media to the home location
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "not unziping $m_file to $ora_home" I "NONE" 
-                          else /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ora_home} ${src_dir}/${m_file}"; fi
+                          else /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${src_dir}/${m_file}" -d ${ora_home}; fi
                         ;;
                     "runinstall")
                         # for legacy runisntall setup stage media
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "not staging runinstall $m_file to $stg_dir" I "NONE" 
-                          else /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${src_dir}/${m_file} -d ${stg_dir}"; fi
+                          else /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${src_dir}/${m_file} -d ${stg_dir}"; fi
                         ;;
                     *)
                         logMesg 1 "Unsupported install type $install_type" E "NONE";;
@@ -217,9 +226,10 @@ if checkopt_oraSwStg "$OPTIONS" ; then
            "DB") 
                ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
                one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" );;
+
            "GRID") 
-               ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_OCW" )
-               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_OCW_ONEOFF" );;
+               ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_GI" )
+               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_GI_ONEOFF" );;
         esac
 
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
@@ -257,8 +267,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                 # if things are good unzip the patch file
                 if (( error_code == 0 )); then
                     p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
-                    [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-                    [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
+                    [[ -f "$p_file" ]] && chown "${conf_user}":oinstall "${p_file}"
+                    [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
                 else
                     logMesg 0 "Could not download patch: $p_patch" E "NONE"
                 fi 
@@ -289,14 +299,16 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                     if (( error_code == 0 )); then
                         p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "opatch_file: $p_file" I "NONE" ; fi
-                        [[ -f "$p_file" ]] && chown oracle:oinstall "${p_file}"
-                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
+                        [[ -f "$p_file" ]] && chown "${conf_user}":oinstall "${p_file}"
+                        # don't need to unzip the OPatch file in staging location
+                        # [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
                     else
                         logMesg 0 "Could not download opatch: $p_patch" E "NONE"
                     fi 
                     # if unzip install type then update OPatch in place
                     if [ "$install_type" == "unzip" ]; then
-                        [[ -f "$p_file" ]] && /usr/bin/su oracle -c "/usr/bin/unzip -q -o ${p_file} -d ${ora_home}"
+                        [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/rm -Rf ${ora_home}/OPatch"
+                        [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${ora_home}"
                     fi
                 fi
             fi # end of OPatch work

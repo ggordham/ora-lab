@@ -8,7 +8,7 @@
 #  - mounting any remote storage
 
 # Internal settings
-SCRIPTVER=1.0
+SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
@@ -189,6 +189,20 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
 
         # for grid install, listener configuration has issues with IPv6 line in hosts file
         /bin/sed -i "/^::1 $( /bin/hostname )/d" /etc/hosts
+    fi
+
+    # Remove IPv6 entries if we are setting up grid
+    if [ "$grid_user" == "TRUE" ]; then
+        host_tmpl="/etc/cloud/templates/hosts.redhat.tmpl /etc/cloud/templates/hosts.debian.tmpl"
+        for tmpl_file in ${host_tmpl}; do
+            /usr/bin/sed -i '/^::1./d' "${tmpl_file}"
+            /usr/bin/sed -i '/IPv6/d' "${tmpl_file}"
+        done
+    fi
+
+    # Disable SELinux if we are installing grid
+    if [ "$grid_user" == "TRUE" ]; then
+        /usr/bin/sed -i 's/^SELINUX=./SELINUX=disabled/g' /etc/selinux/config
     fi
 
     # make additional oradata folders

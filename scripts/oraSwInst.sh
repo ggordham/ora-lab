@@ -3,9 +3,11 @@
 
 # Internal settings
 export SCRIPTDIR
-SCRIPTVER=1.0
+SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
+
+# Note GRID support is for staging software only on stand alone node.
 
 # retun command line help information
 function help_oraSwInst {
@@ -16,6 +18,7 @@ function help_oraSwInst {
   echo >&2
   echo "Usage: $SCRIPTNAME [-h --debug --test ]        " >&2
   echo "-h          give this help screen               " >&2
+  echo "--oratype [grid | db]                           " >&2
   echo "--oraver [Oracle version]                       " >&2
   echo "--orasubver [Oracle minor version]              " >&2
   echo "--orabase [Oracle base]                         " >&2
@@ -44,7 +47,9 @@ function checkopt_oraSwInst {
             case $1 in
                "-h") help_oraSwInst                          #  help
                      exit 1;;
-          "--oraver") ora_ver="$2"
+          "--oratype") ora_type="$2"
+                     shift 2;;
+           "--oraver") ora_ver="$2"
                      shift 2;;
           "--orasubver") ora_sub_ver="$2"
                      shift 2;;
@@ -87,17 +92,33 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
+    # Default the ora_type to database to perserve original design of script
+    if [ -z "${ora_type:-}" ]; then ora_type=DB; fi
+    # make sure parameter is uppercase
+    ora_type=${ora_type^^}
+    # check install type
+    case "${ora_type}" in
+       "DB") conf_var=ora;    conf_user=oracle;;
+       "GRID") conf_var=grid; conf_user=grid;;
+       *) logMesg 1 "Incorrect install type (oratype) of: ${ora_type}" E "NONE";
+          exit 1;;
+    esac
+
+    logMesg 0 "Install type of: $ora_type" "NONE"
+
     # Get settings from server config file if not set on command line
-    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" srvr_ora_ver ); fi
-    if [ -z "${ora_sub_ver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" srvr_ora_subver ); fi
-    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" srvr_ora_home ); fi
+    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_ver" ); fi
+    if [ -z "${ora_sub_ver:-}" ]; then ora_sub_ver=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_subver" ); fi
+    if [ -z "${ora_home:-}" ]; then ora_home=$( cfgGet "$CONF_FILE" "srvr_${conf_var}_home" ); fi
+
     # For oracle home we have a default setting if it is not set
-    if [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ; then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+    if [ "${ora_type}" == "DB" ] && ( [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ); then ora_home="${ora_base}/product/${ora_ver}/dbhome_1"; fi
+    if [ "${ora_type}" == "GRID" ] && ( [ -z "${ora_home:-}" ] || [ "${ora_home}" == "__UNDEFINED__" ] ); then ora_home="$( /usr/bin/dirname "${ora_base}" )/${ora_ver}/grid_1"; fi
 
     # check for settings that can be in server config or default config
-    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" srvr_stg_dir "$DEF_CONF_FILE" stg_dir ); fi
-    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" srvr_ora_base "$DEF_CONF_FILE" ora_base ); fi
-    ora_inst=$( dirname "${ora_base}" )/oraInventory
+    if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" "srvr_stg_${conf_var}_dir" "$DEF_CONF_FILE" "stg_${conf_var}_dir" ); fi
+    if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" "srvr_${conf_var}_base" "$DEF_CONF_FILE" "${conf_var}_base" ); fi
+    ora_inst=$( /usr/bin/dirname "${ora_base}" )
 
     # Provide some infomration if in test mode
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
@@ -147,25 +168,46 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             if [ "$ru_patch" != "__UNDEFINED__" ]; then cmd_parms="-applyRU $ru_dir"; fi
             if [ "$one_off" != "__UNDEFINED__" ]; then cmd_parms="$cmd_parms -applyOneOffs $one_off"; fi
 
-            cmd_parms="$cmd_parms -silent -ignoreprereqfailure oracle.install.option=INSTALL_DB_SWONLY"
-            cmd_parms="$cmd_parms UNIX_GROUP_NAME=oinstall"
-            cmd_parms="$cmd_parms INVENTORY_LOCATION=$ora_inst"
-            cmd_parms="$cmd_parms ORACLE_HOME=$ora_home"
-            cmd_parms="$cmd_parms ORACLE_HOME_NAME=DB_${ora_sub_ver}"
-            cmd_parms="$cmd_parms ORACLE_BASE=$ora_base"
-            cmd_parms="$cmd_parms oracle.install.db.InstallEdition=EE"
-            cmd_parms="$cmd_parms oracle.install.db.OSDBA_GROUP=dba"
-            cmd_parms="$cmd_parms oracle.install.db.OSOPER_GROUP=dba"
-            cmd_parms="$cmd_parms oracle.install.db.OSBACKUPDBA_GROUP=dba"
-            cmd_parms="$cmd_parms oracle.install.db.OSDGDBA_GROUP=dba"
-            cmd_parms="$cmd_parms oracle.install.db.OSKMDBA_GROUP=dba"
-            cmd_parms="$cmd_parms oracle.install.db.OSRACDBA_GROUP=dba"
-            cmd_parms="$cmd_parms DECLINE_SECURITY_UPDATES=true"
+            # setup paramters based on type of install
+            case "${ora_type}" in
+               "DB") 
+                    cmd_name=runInstaller
+                    cmd_parms="$cmd_parms -silent -ignoreprereqfailure oracle.install.option=INSTALL_DB_SWONLY"
+                    cmd_parms="$cmd_parms UNIX_GROUP_NAME=oinstall"
+                    cmd_parms="$cmd_parms INVENTORY_LOCATION=$ora_inst"
+                    cmd_parms="$cmd_parms ORACLE_HOME=$ora_home"
+                    cmd_parms="$cmd_parms ORACLE_HOME_NAME=DB_${ora_sub_ver}"
+                    cmd_parms="$cmd_parms ORACLE_BASE=$ora_base"
+                    # future RAC support
+                    #cmd_parms="$cmd_parms oracle.install.db.CLUSTER_NODES=srvr01,srvr02"
+                    cmd_parms="$cmd_parms oracle.install.db.InstallEdition=EE"
+                    cmd_parms="$cmd_parms oracle.install.db.OSDBA_GROUP=dba"
+                    cmd_parms="$cmd_parms oracle.install.db.OSOPER_GROUP=dba"
+                    cmd_parms="$cmd_parms oracle.install.db.OSBACKUPDBA_GROUP=dba"
+                    cmd_parms="$cmd_parms oracle.install.db.OSDGDBA_GROUP=dba"
+                    cmd_parms="$cmd_parms oracle.install.db.OSKMDBA_GROUP=dba"
+                    cmd_parms="$cmd_parms oracle.install.db.OSRACDBA_GROUP=dba"
+                    cmd_parms="$cmd_parms DECLINE_SECURITY_UPDATES=true"
+                    ;;
+
+               "GRID")
+                    cmd_name=gridSetup.sh
+                    cmd_parms="$cmd_parms -silent -ignoreprereqfailure "
+                    cmd_parms="$cmd_parms oracle.install.option=CRS_SWONLY "
+                    cmd_parms="$cmd_parms INVENTORY_LOCATION=$ora_inst"
+                    cmd_parms="$cmd_parms ORACLE_BASE=$ora_base"
+                    cmd_parms="$cmd_parms oracle.install.crs.config.clusterNodes=$( /usr/bin/hostname -s )"
+                    cmd_parms="$cmd_parms oracle.install.asm.OSASM=asmadmin"
+                    cmd_parms="$cmd_parms oracle.install.asm.OSDBA=asmdba"
+                    cmd_parms="$cmd_parms oracle.install.asm.OSOPER=asmoper"
+                    cmd_parms="$cmd_parms oracle.install.crs.rootconfig.executeRootScript=false"
+                   ;;
+            esac
 
             # Generate temp script for runInstaller
             tmp_script=/tmp/oraSwInst_run.sh
             echo "# generated script by oraSwInst.sh to run runinstaller" > "${tmp_script}"
-            chmod +x "${tmp_script}"
+            /usr/bin/chmod +x "${tmp_script}"
             logMesg 0 "  Generated temporary script at: $tmp_script" I "NONE"; 
             # Check for OS version specific workarounds
             oui_os_issues=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_oui_os_issues" )
@@ -189,12 +231,12 @@ if checkopt_oraSwInst "$OPTIONS" ; then
 
             # Run the install command, unless we are testing
             echo "# OUI command " >> "${tmp_script}"
-            echo "${ora_home}/runInstaller $cmd_parms" >> "${tmp_script}"
+            echo "${ora_home}/${cmd_name} $cmd_parms" >> "${tmp_script}"
             if [ "$TEST" == "TRUE" ]; then 
                 logMesg 0 "Contents of runinstaller script: $tmp_script" I "NONE"; 
                 /usr/bin/cat "${tmp_script}"
             else
-                /usr/bin/su oracle -c "/bin/bash ${tmp_script}"
+                /usr/bin/su "${conf_user}" -c "/bin/bash ${tmp_script}"
             fi
         fi
 

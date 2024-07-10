@@ -79,6 +79,36 @@ function checkopt_oraORDS {
 
 }
 
+
+load_ords_file () {
+    # check if the ORDS install file is there
+    if [ -f "${ords_src}" ]; then
+        # create the target directories
+        [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
+        [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
+        [[ ! -d "${ORDS_CONFIG}" ]] && mkdir -p "${ORDS_CONFIG}"
+        [[ ! -d "${ords_logs}" ]] && mkdir -p "${ords_logs}"
+        /usr/bin/chown oracle:oinstall "${ords_path}"
+        /usr/bin/chown oracle:oinstall "${ords_admin}"
+        /usr/bin/chown oracle:oinstall "${ORDS_CONFIG}"
+        /usr/bin/chown oracle:oinstall "${ords_logs}"
+ 
+        # load the ORDS software
+        /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ords_path} ${ords_src}"
+    else
+        echo "ERROR! could not find ORDS install file at: ${ords_src}"
+        exit 1
+    fi
+        
+} 
+
+load_ords_repo () {
+    # load ORDS from repo
+    if [ "${ords_use_repo}" == "TRUE" ]; then
+        /usr/bin/yum-config-manager --add-repo="${ords_repo}"
+        /usr/bin/yum install ords
+    fi
+}
 ############################################################################################
 # start here
 
@@ -99,12 +129,14 @@ if checkopt_oraORDS "$OPTIONS" ; then
     if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGetD "$CONF_FILE" srvr_ords_src "$ORA_CONF_FILE" ords_src ); fi
     if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGetD "$CONF_FILE" srvr_ords_port "$ORA_CONF_FILE" ords_port ); fi
     if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGetD "$CONF_FILE" srvr_ords_admin "$ORA_CONF_FILE" ords_admin ); fi
+    if [ -z "${ords_load_from:-}" ]; then ords_load_from=$( cfgGetD "$CONF_FILE" srvr_ords_load_from "$ORA_CONF_FILE" ords_load_from ); fi
 
     # output some test information
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_path: $ords_path" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_src: $ords_src" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_port: $ords_port" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_admin: $ords_admin" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_load_from: $ords_load_from" I "NONE" ; fi
  
     # get server specific settings
     ora_lsnr_port=$( cfgGetD "$CONF_FILE" srvr_ora_lsnr_port "$DEF_CONF_FILE" lsnr_port )
@@ -128,6 +160,12 @@ if checkopt_oraORDS "$OPTIONS" ; then
     fi 
     logMesg "Installing ORDS in DB: $db_service" I "NONE"
 
+    # check os version
+    os_name=$( /bin/grep -E '^NAME=' /etc/os-release | /bin/cut -d= -f2 | /bin/tr -d '"' )
+    os_version=$( /bin/grep -E '^VERSION=' /etc/os-release | /bin/cut -d= -f2 | /bin/tr -d '"' )
+    os_release=$( echo "${os_version}" | /bin/cut -d. -f1 )
+    ords_repo="http://yum.oracle.com/repo/OracleLinux/OL${os_release}/oracle/software/x86_64"
+
     # static defaults
     ORDS_CONFIG=${ords_admin}/config
     ords_logs=${ords_admin}/logs
@@ -143,6 +181,9 @@ if checkopt_oraORDS "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "db_host: $db_host" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_lsnr_port: $ora_lsnr_port" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "db_service: $db_service" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "os_name: $os_name" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "os_version: $os_version" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_repo: $ords_repo" I "NONE" ; fi
  
     # Lookup password for database
     secret_name="db_all_${ora_db_sid}"
@@ -152,32 +193,23 @@ if checkopt_oraORDS "$OPTIONS" ; then
         exit 1
     fi
 
-    # check if the ORDS install file is there
-    if [ -f "${ords_src}" ]; then
 
-        # install java if it is not arlready installed
-        #   Note lsof used by systemctl start script for ords
-        /usr/bin/yum -y install java-11-openjdk lsof
-        if (( $? > 0 )) ; then echo "ERROR could not install Java 11"; exit 1; fi
+    # install java if it is not arlready installed
+    #   Note lsof used by systemctl start script for ords
+    /usr/bin/yum -y install java-11-openjdk lsof
+    if (( $? > 0 )) ; then echo "ERROR could not install Java 11"; exit 1; fi
 
-        # Set the Java environment, make sure select java is first in path
-        JAVA_HOME=$( /usr/sbin/alternatives --list | /usr/bin/grep jre_11_openjdk | /usr/bin/cut -f3 )
-        export JAVA_HOME
-        export PATH=${JAVA_HOME}/bin:$PATH
+    # Set the Java environment, make sure select java is first in path
+    JAVA_HOME=$( /usr/sbin/alternatives --list | /usr/bin/grep jre_11_openjdk | /usr/bin/cut -f3 )
+    export JAVA_HOME
+    export PATH=${JAVA_HOME}/bin:$PATH
 
-        # create the target directories
-        [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
-        [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
-        [[ ! -d "${ORDS_CONFIG}" ]] && mkdir -p "${ORDS_CONFIG}"
-        [[ ! -d "${ords_logs}" ]] && mkdir -p "${ords_logs}"
-        /usr/bin/chown oracle:oinstall "${ords_path}"
-        /usr/bin/chown oracle:oinstall "${ords_admin}"
-        /usr/bin/chown oracle:oinstall "${ORDS_CONFIG}"
-        /usr/bin/chown oracle:oinstall "${ords_logs}"
- 
-        # load the ORDS software
-        /usr/bin/su oracle -c "/usr/bin/unzip ${ords_src} -d ${ords_path}"
- 
+    # Load the ords binaries
+    case "${ords_load_from}" in
+      "repo") load_ords_repo;;
+      "file") load_ords_file;;
+    esac
+
         # Install ORDS into the database
         logMesg "ORDS CONFIG: ${ORDS_CONFIG}" I "NONE"
         export ORDS_CONFIG
@@ -261,10 +293,6 @@ if checkopt_oraORDS "$OPTIONS" ; then
         echo "export ORDS_CONFIG=${ORDS_CONFIG}"  >> /home/oracle/.bashrc
         echo "export JAVA_HOME=${JAVA_HOME}"      >> /home/oracle/.bashrc 
         echo 'export PATH=${JAVA_HOME}/bin:$PATH' >> /home/oracle/.bashrc
-    else
-        echo "ERROR! could not find ORDS install file at: ${ords_src}"
-        exit 1
-    fi
 
 else
     echo "ERROR - invalid command line parameters" >&2

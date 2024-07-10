@@ -256,7 +256,7 @@ if ([ ! -z "${p_patch}" ] && [ -f "$TMP3" ] && [ "$( wc -l "$TMP3" | cut -d ' ' 
             echo "$fname completed with status: $?"
         else
             echo "Downloading file $fname ..."
-            curl -R -b "$COOK" -c "$COOK" --insecure --output "$fname" -L "$URL"
+            #curl -R -b "$COOK" -c "$COOK" --insecure --output "$fname" -L "$URL"
             if [ "$p_debug" ] && [ "$p_debug" == "yes" ]; then echo "running: wget --load-cookies=$COOK $URL -O $fname"; fi
             wget --load-cookies="$COOK" "$URL" -O "$fname"
             RESULT=$?
