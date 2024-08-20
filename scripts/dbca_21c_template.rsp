@@ -51,10 +51,10 @@ dvAccountManagerPassword=
 
 # Database Configuration
 # DB Storage
-datafileDestination=${ora_db_data}/{DB_UNIQUE_NAME}/
+datafileDestination=${ora_db_data}
 recoveryAreaDestination=
 recoveryAreaSize=54525952BYTES"
-storageType=FS
+storageType=${ora_strg_type}
 diskGroupName=
 asmsnmpPassword=
 recoveryGroupName=

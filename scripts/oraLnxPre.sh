@@ -136,6 +136,10 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkg_tool: $lnx_pkg_tool" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "grid_user: $grid_user" I "NONE" ; fi
 
+    # OS version
+    os_ver=$( /bin/grep '^VERSION_ID' /etc/os-release | /bin/tr -d '"' | /bin/cut -d . -f 1 | /bin/cut -d = -f 2 )
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "Detected OS Version: $os_ver" I "NONE" ; fi
+
     # setup local disks
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
         mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
@@ -143,11 +147,12 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         label=$( /bin/basename "$mount" )
         logMesg 0 "Setting up local storage: fs: $mount disk: $disk " I "NONE"
         if [ -b "${disk}" ]; then
-            sudo su -c "/bin/mkdir -p ${mount}"
-            sudo su -c "/bin/chmod 755 ${mount}"
-            sudo su -c "/sbin/mkfs.${fs_type} -L ${label} ${disk}"
-            sudo su -c "echo 'LABEL=${label} ${mount} ${fs_type} defaults 0 0' >> /etc/fstab"
-            sudo sh -c "/bin/mount ${mount}"
+            /usr/bin/sudo su -c "/bin/mkdir -p ${mount}"
+            /usr/bin/sudo su -c "/bin/chmod 755 ${mount}"
+            /usr/bin/sudo su -c "/sbin/mkfs.${fs_type} -L ${label} ${disk}"
+            /usr/bin/sudo su -c "echo 'LABEL=${label} ${mount} ${fs_type} defaults 0 0' >> /etc/fstab"
+            if (( os_ver > 7 )); then /usr/bin/sudo /usr/bin/systemctl daemon-reload; fi
+            /usr/bin/sudo sh -c "/bin/mount ${mount}"
         else
             logMesg 1 "Could not find block device:$disk " E "NONE"
             exit 1
@@ -164,20 +169,20 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         logMesg 0 "No extra Linux packages to install." I "NONE"
     else
         logMesg 0 "Installing extra Linux packages: ${lnx_pkgs}" I "NONE"
-        sudo sh -c "${lnx_pkg_tool} -y install $( echo "${lnx_pkgs}" | tr "," " " )"
+        /usr/bin/sudo sh -c "${lnx_pkg_tool} -y install $( echo "${lnx_pkgs}" | tr "," " " )"
     fi
     
     # Enable RNGD
     if /usr/bin/rpm --quiet -q rng-tools ; then
         logMesg 0 "Enabeling RNGD " I "NONE"
-        sudo sh -c "/bin/systemctl enable rngd"
-        sudo sh -c "/bin/systemctl start rngd"
+        /usr/bin/sudo sh -c "/bin/systemctl enable rngd"
+        /usr/bin/sudo sh -c "/bin/systemctl start rngd"
     else
         logMesg 0 "RNGD not installed, skipping enablement" I "NONE"
     fi
 
     # Add grid user and ASM groups if needed
-    if [ "$grid_user" == "TRUE" ]; then
+    if [ "${grid_user}" == "TRUE" ]; then
         logMesg 0 "Adding grid user and ASM groups " I "NONE"
         /sbin/groupadd -g 54327 asmdba
         /sbin/groupadd -g 54328 asmoper
@@ -209,19 +214,19 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
         mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
         if [ "${mount}" != "/u01" ]; then
-             sudo sh -c "/bin/mkdir -p ${mount}/oradata"
-             sudo sh -c "/usr/bin/chown 54321 ${mount}/oradata"
-             sudo sh -c "/usr/bin/chgrp 54321 ${mount}/oradata"
+             /usr/bin/sudo sh -c "/bin/mkdir -p ${mount}/oradata"
+             /usr/bin/sudo sh -c "/usr/bin/chown 54321 ${mount}/oradata"
+             /usr/bin/sudo sh -c "/usr/bin/chgrp 54321 ${mount}/oradata"
         fi
     done
      
     # Configure firewalld for Oracle Listener
     if [ -x /bin/firewall-cmd ]; then
         logMesg 0 "Updating firewalld for oracle port: ${lsnr_port}" I "NONE"
-        sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
+        /usr/bin/sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-port=${lsnr_port}/tcp"
         # configure firewall for NFS
-        sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-service=nfs"
-        sudo sh -c "/bin/firewall-cmd --reload"
+        /usr/bin/sudo sh -c "/bin/firewall-cmd --permanent --zone=public --add-service=nfs"
+        /usr/bin/sudo sh -c "/bin/firewall-cmd --reload"
     fi
 
     # Setup software mount
@@ -230,8 +235,9 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         fs_opts="ro,_netdev 0 0"
         logMesg 0 "Updating fstab" I "NONE"
         echo "${sft_source} ${sft_mount} ${sft_type} ${fs_opts}" | sudo tee -a /etc/fstab
-        sudo sh -c "/bin/mkdir ${sft_mount}"
-        sudo sh -c "/bin/mount ${sft_mount}"
+        if (( os_ver > 7 )); then /usr/bin/sudo /usr/bin/systemctl daemon-reload; fi
+        /usr/bin/sudo sh -c "/bin/mkdir ${sft_mount}"
+        /usr/bin/sudo sh -c "/bin/mount ${sft_mount}"
         if /bin/mountpoint "${sft_mount}"; then logMesg 0 "Sucess mounting: ${sft_mount}" I "NONE"
         else logMesg 1 "Faild to mount: $sft_mount" E "NONE"; exit 1; fi
     else

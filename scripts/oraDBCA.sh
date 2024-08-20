@@ -133,6 +133,21 @@ if checkopt_oraDBCA "$OPTIONS" ; then
     ora_ver=${db_version%%.*}
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
 
+    # Check storage location for ASM and set variable accordingly
+    #   Using response file variable for unique name in filesystem path
+    if [ "${ora_db_data:0:1}" == "+" ]; then
+        logMesg 0 "Using ASM disk group ${ora_db_data}" I "NONE" 
+        ora_strg_type=ASM
+    else
+        if [ -d "${ora_db_data}" ]; then
+            logMesg 0 "Database data directory exists: ${ora_db_data}" I "NONE"
+            ora_db_data="${ora_db_data}/{DB_UNIQUE_NAME}/"
+            ora_strg_type=FS
+        else
+            logMesg 1 "Database data directory is missing: ${ora_db_data}" E "NONE"
+        fi
+    fi
+    
     # Lookup password for database
     secret_name="db_all_${ora_db_sid}"
     db_password=$( getSecret "${secret_name}" )

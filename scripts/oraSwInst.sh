@@ -38,7 +38,7 @@ function checkopt_oraSwInst {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,stgdir:,oraver:,orasubver:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,stgdir:,oraver:,orasubver:,orabase:,orahome:,oratype: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -163,10 +163,25 @@ if checkopt_oraSwInst "$OPTIONS" ; then
                 logMesg 1 "RU patch direcotry not found: ${ru_dir}" E "NONE"
             fi
 
+            # setup one off patch directories
+            for p_patch in $( echo "${one_off}" | /bin/tr "," " " ); do
+                p_dir="${stg_dir}/patch/${p_patch}"
+                if [ -d "${p_dir}"  ]; then 
+                    logMesg 0 "One off patch ${p_patch} directory exists" I "NONE"
+                    if [ -z "${one_off_list:-}" ]; then
+                        one_off_list="${p_dir}"
+                    else
+                        one_off_list="${p_dir},${one_off_list}"
+                    fi
+                else
+                    logMesg 1 "One off patch ${p_patch} directory not found" I "NONE"
+                fi
+            done
+
             # setting up command line paramters
             cmd_parms=""
             if [ "$ru_patch" != "__UNDEFINED__" ]; then cmd_parms="-applyRU $ru_dir"; fi
-            if [ "$one_off" != "__UNDEFINED__" ]; then cmd_parms="$cmd_parms -applyOneOffs $one_off"; fi
+            if [ "$one_off" != "__UNDEFINED__" ]; then cmd_parms="$cmd_parms -applyOneOffs $one_off_list"; fi
 
             # setup paramters based on type of install
             case "${ora_type}" in

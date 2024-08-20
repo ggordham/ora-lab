@@ -205,7 +205,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                     "unzip")
                         # for 18c and above unzip the source media to the home location
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "not unziping $m_file to $ora_home" I "NONE" 
-                          else /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${src_dir}/${m_file}" -d ${ora_home}; fi
+                          else /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${src_dir}/${m_file} -d ${ora_home}"; fi
                         ;;
                     "runinstall")
                         # for legacy runisntall setup stage media
@@ -253,7 +253,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
             else p_list="${p_list},${one_off}"; logMesg 0 "One off patche: $one_off" I "NONE"; fi
 
         # Loop through each patch and download
-        for p_patch in $( echo "$p_list" | tr "," " " ); do
+        for p_patch in $( echo "$p_list" | /bin/tr "," " " ); do
             logMesg 0 "Downloading and unzipping Patch: $p_patch" I "NONE"
             if [ "$DEBUG" == "TRUE" ]; then debug_flag="debug=yes"; else debug_flag=""; fi
 
