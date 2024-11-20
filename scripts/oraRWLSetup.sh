@@ -6,7 +6,7 @@
 
 # Internal settings
 export SCRIPTDIR
-SCRIPTVER=1.0
+SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
@@ -60,6 +60,7 @@ function checkopt_oraRWLSetup {
           "--dbsid") ora_db_sid="$2"
                      shift 2;;
           "--dbpdb") ora_db_pdb="$2"
+                     ora_db_type="CDB"                   # set type to CDB
                      shift 2;;
            "--datadir") ora_db_data="$2"
                      shift 2;;
@@ -96,6 +97,7 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
     # check if a oracle_db_sid and other settings, otherwise lookup default setting
     if [ -z "${ora_db_sid:-}" ]; then ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid ); fi
     if [ -z "${ora_db_pdb:-}" ]; then ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb ); fi
+    if [ -z "${ora_db_type:-}" ]; then ora_db_type=$( cfgGet "$CONF_FILE" ora_db_type ); fi
     if [ -z "${rwl_dir:-}" ]; then rwl_dir=$( cfgGet "$CONF_FILE" rwl_dir ); fi
     if [ -z "${rwl_outdir:-}" ]; then rwl_outdir=$( cfgGet "$CONF_FILE" rwl_outdir ); fi
     if [ -z "${rwl_proj:-}" ]; then rwl_proj=$( cfgGet "$CONF_FILE" rwl_proj ); fi
@@ -164,6 +166,11 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
             rwl_file="${ora_db_data}/${ora_db_sid^^}/${ora_db_pdb}/data01.dbf" 
         fi
     fi # check for ASM
+
+    # check for PDB usage
+    if [ "${ora_db_type}" == "CDB" ]; then
+        export ORACLE_PDB_SID="${ora_db_pdb}"
+    fi
 
     # build out the schema
     logMesg 0 "Bulding schema for RWL, check log: $temp_dir/rwlschema.log" I "NONE"

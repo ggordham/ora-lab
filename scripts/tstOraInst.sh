@@ -67,9 +67,16 @@ if inListC "${build_steps}" "pre"; then
     stp_status=$?
 fi
 
-# download and stage rquired software (stg)
+# download and stage required grid software (gstg)
+if inListC "${build_steps}" "gstg" && (( stp_status == 0 )); then
+    options="--oratype grid"
+    run_step gstg root oraSwStg.sh "${log_file}" "${options}" 
+    stp_status=$?
+fi
+
+# download and stage rquired database software (stg)
 if inListC "${build_steps}" "stg" && (( stp_status == 0 )); then
-    options=""
+    options="--oratype db"
     run_step stg root oraSwStg.sh "${log_file}" "${options}" 
     stp_status=$?
 fi
@@ -150,7 +157,7 @@ fi
 
 echo "===============================================================" >> "${log_file}"
 
-echo "Final Build status code: $stp_status"
+echo "Final Build status code: $stp_status" | /bin/tee -a "${log_file}"
 echo "Build started: $( /bin/last | /bin/grep reboot | /bin/tail -1 )" >> "${log_file}"
 echo "Build finished: $( date )" >> "${log_file}"
 # END

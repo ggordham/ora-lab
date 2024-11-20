@@ -9,7 +9,7 @@
 # version 1.0
 
 # Internal settings
-SCRIPTVER=1.0
+SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 
 repo_url=https://github.com/ggordham/ora-lab
@@ -20,6 +20,7 @@ log_file=/tmp/get-ora-lab-$( date +%Y%m%d-%H%M%S ).log
 cur_user=$( /usr/bin/id -un )
 cur_group=$( /usr/bin/id -gn )
 refresh=FALSE
+ora_scrpt_list="oraDBCA.sh oraRWLRun.sh oraRWLSetup.sh oraTNS.sh oraLsnr.sh oraDBSamp.sh"
 
 # retun command line help information
 function help_get-ora-lab {
@@ -115,6 +116,11 @@ if [ "$TEST" == "TRUE" ]; then
 else
     /usr/bin/curl -L ${repo_url}/tarball/main | tar xz -C "${target_path}" --strip=1 "${package_root}-???????/${target}"  | /usr/bin/tee -a "${log_file}"
     /usr/bin/find ${target_path} -name \*.sh -exec /usr/bin/chmod 754 {} \; >> "${log_file}" 2>&1
+
+    # fix ownership of scripts that should have oracle user access
+    for scrpt in ${ora_scrpt_list}; do
+      /usr/bin/find ${target_path} -name "${scrpt}" -exec /usr/bin/chgrp 54321 {} \; >> "${log_file}" 2>&1
+    done
 fi
 
 # if we are not in refresh mode setup the reboot process

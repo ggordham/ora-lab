@@ -8,33 +8,33 @@ Generally scripts can be run independently.  Most options will come from .conf f
 Basic testing has been performed on the folloiwng modules / OS versions / database versions.
 
 |                | 9iR2 | 10gR1 | 10gR2 | 11gR1 | 11gR2 | 12cR1      | 12cR2      | 18c        | 19c        | 21c   | 23c (beta) |
-| -------------- | ---- | ----- | ----- | ----- | ----- | ---------- | ---------- | ---------- | ---------- | ----- | ---------- |
-| oraLnxPre.sh   |      |       |       |       |       |            |            |            | W (7,8)    | W (8) | W (8)      |
-| oraSwStg.sh    |      |       |       |       |       |            |            |            | W (7,8)    | W (8) | W (8)      |
-| oraSwInst.sh   |      |       |       |       |       |            |            |            | W          | W     | W          |
-| oraDBCA.sh     |      |       |       |       |       |            |            |            | W          | W     | W          |
-| oraLsnr.sh     |      |       |       |       |       |            |            |            | W          | W     | W          |
-| oraTNS.sh      |      |       |       |       |       |            |            |            | W          | W     | W          |
-| oraORDS.sh     |      |       |       |       |       |            |            |            | W          | W     | E          |
-| oraDBSamp.sh   |      |       |       |       |       |            |            |            | W          | W     | W          |
-| oraRWLInst.sh  |      |       |       |       | T     |            |            |            | W          | W     | W          |
-| oraRWLSetup.sh |      |       |       |       | T     |            |            |            | W          | W     | W          |
-| oraUserCFG.sh  |      |       |       |       |       |            |            |            | W (7,8)    | W (8) | W (8)      |
-|                |      |       |       |       |       |            |            |            |            |       |            |
-| getMOSPatch.sh |      |       |       |       |       |            |            |            | W          | W     |            |
-| oraRWLRun.sh   |      |       |       |       | T     |            |            |            | W          | W     | W          |
-| NCDB / PDB     | NCDB | NCDB  | NCDB  | NCDB  | NCDB  | NCDB / PDB | NCDB / PDB | NCDB / PDB | NCDB / PDB | PDB   | PDB        |
-|                |      |       |       |       |       |            |            |            |            |       |            |
-| Linux Versions |      |       |       |       |       |            |            |            |            |       |            |
-| OEL 4          | Y    | Y     | N     | N     | N     | N          | N          | N          | N          | N     | N          |
-| OEL 5          | N    | N     | Y     | Y     | Y     | N          | N          | N          | N          | N     | N          |
-| OEL 6          | N    | N     | N     | N     | Y     | Y          | Y          | Y          | N          | N     | N          |
-| OEL 7          | N    | N     | N     | N     | Y     | Y          | Y          | Y          | Y          | Y     | N          |
-| OEL 8          | N    | N     | N     | N     | N     | N          | N          | N          | Y          | Y     | Y          |
-| OEL 9          | N    | N     | N     | N     | N     | N          | N          | N          | N          | N     |            |
+| -------------- | ---- | ----- | ----- | ----- | ----- | ---------- | ---------- | ---------- | ---------- | ------- | ---------- |
+| oraLnxPre.sh   |      |       |       |       |       |            |            |            | W (7,8)    | W (8)   | W (8)      |
+| oraSwStg.sh    |      |       |       |       |       |            |            |            | W (G,D)    | W (G,D) | W (8)      |
+| oraSwInst.sh   |      |       |       |       |       |            |            |            | W (7,8)    | W (8)   | W (8)      |
+| oraDBCA.sh     |      |       |       |       |       |            |            |            | W          | W       | W          |
+| oraLsnr.sh     |      |       |       |       |       |            |            |            | W          | W       | W          |
+| oraTNS.sh      |      |       |       |       |       |            |            |            | W          | W       | W          |
+| oraORDS.sh     |      |       |       |       |       |            |            |            | W          | W       | E          |
+| oraDBSamp.sh   |      |       |       |       |       |            |            |            | W          | W       | W          |
+| oraRWLInst.sh  |      |       |       |       | T     |            |            |            | W          | W       | W          |
+| oraRWLSetup.sh |      |       |       |       | T     |            |            |            | W          | W       | W          |
+| oraUserCFG.sh  |      |       |       |       |       |            |            |            | W (7,8)    | W (8)   | W (8)      |
+|                |      |       |       |       |       |            |            |            |            |         |            |
+| getMOSPatch.sh |      |       |       |       |       |            |            |            | W          | W       |            |
+| oraRWLRun.sh   |      |       |       |       | T     |            |            |            | W          | W       | W          |
+| NCDB / PDB     | NCDB | NCDB  | NCDB  | NCDB  | NCDB  | NCDB / PDB | NCDB / PDB | NCDB / PDB | NCDB / PDB | PDB     | PDB        |
+|                |      |       |       |       |       |            |            |            |            |         |            |
+| Linux Versions |      |       |       |       |       |            |            |            |            |         |            |
+| OEL 4          | Y    | Y     | N     | N     | N     | N          | N          | N          | N          | N       | N          |
+| OEL 5          | N    | N     | Y     | Y     | Y     | N          | N          | N          | N          | N       | N          |
+| OEL 6          | N    | N     | N     | N     | Y     | Y          | Y          | Y          | N          | N       | N          |
+| OEL 7          | N    | N     | N     | N     | Y     | Y          | Y          | Y          | Y          | Y       | N          |
+| OEL 8          | N    | N     | N     | N     | N     | N          | N          | N          | Y          | Y       | Y          |
+| OEL 9          | N    | N     | N     | N     | N     | N          | N          | N          | N          | N       |            |
 
 Notes:
-- W = working (OS versions)
+- W = working (OS versions, GRID, DB)
 - T = testing
 - NCDB / PDB status still in progress, PDB tested first on working lines
 - Y - compatible
@@ -98,6 +98,7 @@ Usage: oraLnxPre.sh [-h --debug --test ]
 --lsnp  [Oracle Listener Port]
 --pkgs  [Linux packages to install]
 --pkgt  [Linux package tool]
+--grid  Additional OS changes to support GRID
 --debug     turn on debug mode
 --test      turn on test mode, disable DBCA run
 --version | -v Show the script version
@@ -127,6 +128,7 @@ Usage: oraSwStg.sh [-h --debug --test ]
 --orahome [Oracle home]
 --srcdir [Source directory]
 --stgdir [Staging Directory]
+--guser Create grid user and ASM groups
 --debug     turn on debug mode
 --test      turn on test mode, disable DBCA run
 --version | -v Show the script version
@@ -154,6 +156,7 @@ oraSwInst.sh
 
 Usage: oraSwInst.sh [-h --debug --test ]
 -h          give this help screen
+--oratype [grid | db] 
 --oraver [Oracle version]
 --orasubver [Oracle minor version]
 --orabase [Oracle base]

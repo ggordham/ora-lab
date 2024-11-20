@@ -25,6 +25,7 @@ function help_oraSwStg {
   echo "--orahome [Oracle home]                         " >&2
   echo "--srcdir [Source directory]                     " >&2
   echo "--stgdir [Staging Directory]                    " >&2
+  echo "--guser Create grid user and ASM groups         " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
@@ -36,10 +37,11 @@ function checkopt_oraSwStg {
     #set defaults
     DEBUG=FALSE
     TEST=FALSE
+    GRID_USER=FALSE
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,srcdir:,oratype:,oraver:,orasubver:,stgdir:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,guser,srcdir:,oratype:,oraver:,orasubver:,stgdir:,orabase:,orahome: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -62,7 +64,9 @@ function checkopt_oraSwStg {
                      shift 2;;
            "--orahome") ora_home="$2"
                      shift 2;;
-          "--debug") DEBUG=TRUE                         # debug mode
+          "--guser") GRID_USER=TRUE
+                     shift ;;
+           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
                      shift ;;
            "--test") TEST=TRUE                           # test mode
@@ -123,6 +127,11 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" "srvr_${conf_var}_base" "$DEF_CONF_FILE" "${conf_var}_base" ); fi
     ora_inst=$( /usr/bin/dirname "${ora_base}" )
 
+    # check if grid user and group settings are in the config file
+    # TRUE anywhere overides false in this case
+    cfg_grid_user=$( cfgGetD "$CONF_FILE" srvr_grid_user  "$DEF_CONF_FILE" grid_user );
+    if [ "${cfg_grid_user^^}" == "TRUE" ] || [ "${GRID_USER}" == "TRUE" ]; then GRID_USER="TRUE"; fi
+
     # Provide some infomration if in test mode
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_sub_ver: $ora_sub_ver" I "NONE" ; fi
@@ -130,6 +139,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_BASE: $ora_base" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ORACLE_INST: $ora_inst" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "stg_dir: $stg_dir" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "GRID_USER: $GRID_USER" I "NONE" ; fi
 
     # setup staging directory
     if [ "${stg_dir}" != "__UNDEFINED__" ]; then
@@ -167,8 +177,18 @@ if checkopt_oraSwStg "$OPTIONS" ; then
           elif [ -f /usr/bin/dnf ]; then /usr/bin/dnf -y install "${preinstall_rpm}"
           else /bin/yum -y install "${preinstall_rpm}"; fi
 
-        # Setup grid user OS limits
-        if [ "${ora_type}" == "GRID" ] && [ ! -f /etc/security/limits.d/oracle-grid-preinstall-19c.conf ]; then
+        # Add grid user and ASM groups if needed, setup OS limits
+        if [ "${GRID_USER}" == "TRUE" ]; then
+            logMesg 0 "Adding grid user and ASM groups " I "NONE"
+            /sbin/groupadd -g 54327 asmdba
+            /sbin/groupadd -g 54328 asmoper
+            /sbin/groupadd -g 54329 asmadmin
+            /sbin/useradd -N -s /bin/bash -u 54331 -g oinstall -G asmdba,asmoper,asmadmin grid 
+            
+            logMesg 0 "Adding oracle user to all ASM groups " I "NONE"
+            /sbin/usermod -aG asmdba,asmoper,asmadmin oracle
+
+            # Setup grid user OS limits
             /bin/cp /etc/security/limits.d/oracle-database-preinstall-19c.conf /etc/security/limits.d/oracle-grid-preinstall-19c.conf
             /bin/sed -i 's/^oracle./grid/g' /etc/security/limits.d/oracle-grid-preinstall-19c.conf
         fi
@@ -180,7 +200,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         if [ "${ora_inst}" != "__UNDEFINED__" ]; then /usr/bin/mkdir -p "${ora_inst}"; else error_code=3; fi
         [ -d "${ora_base}" ] && /usr/bin/chown -R "${conf_user}":oinstall "${ora_base}"
         [ -d "${ora_home}" ] && /usr/bin/chown -R "${conf_user}":oinstall "${ora_home}"
-        [ -d "${ora_inst}" ] && /usr/bin/chown -R "${conf_user}":oinstall "${ora_inst}"
+        [ -d "${ora_inst}" ] && /usr/bin/chown "${conf_user}":oinstall "${ora_inst}"
         if (( error_code > 0 )); then logMesg 1 "Failed to setup ora_base: $ora_base ora_home: $ora_home ora_inst: $ora_inst" E "NONE"; fi
 
         # make sure stage directory is owned by software owner user

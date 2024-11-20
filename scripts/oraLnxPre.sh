@@ -30,7 +30,8 @@ function help_oraLnxPre {
   echo "--lsnp  [Oracle Listener Port]                  " >&2
   echo "--pkgs  [Linux packages to install]             " >&2
   echo "--pkgt  [Linux package tool]                    " >&2
-  echo "--guser Create grid user and ASM groups         " >&2
+  echo "--grid  Additional OS changes to support GRID   " >&2
+  echo "--datadir [DB data directory]                   " >&2
   echo "--debug     turn on debug mode                  " >&2
   echo "--test      turn on test mode, disable DBCA run " >&2
   echo "--version | -v Show the script version          " >&2
@@ -43,11 +44,11 @@ function checkopt_oraLnxPre {
     DEBUG=FALSE
     TEST=FALSE
     SFT_MOUNT=TRUE
-    grid_user=FALSE
+    GRID_INSTALL=FALSE
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,sftno,guser,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt: -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,sftno,grid,disks:,dfs:,sftt:,sftm:,sfts:,lsnp:,pkgs:,pkgt:,datadir: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -74,8 +75,10 @@ function checkopt_oraLnxPre {
                      shift 2;;
            "--pkgt") lnx_pkg_tool="$2"
                      shift 2;;
-          "--guser") grid_user=TRUE
+          "--grid") GRID_INSTALL=TRUE
                      shift ;;
+          "--datadir") ora_db_data="$2"
+                     shift 2;;
           "--debug") DEBUG=TRUE                         # debug mode
                      set -x
                      shift ;;
@@ -120,10 +123,8 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ -z "${lnx_pkgs:-}" ]; then lnx_pkgs=$( cfgGetD "$CONF_FILE" srvr_lnx_pkgs  "$DEF_CONF_FILE" lnx_pkgs ); fi
     if [ -z "${lnx_pkg_tool:-}" ]; then lnx_pkg_tool=$( cfgGetD "$CONF_FILE" srvr_lnx_pkg_tool  "$DEF_CONF_FILE" lnx_pkg_tool ); fi
 
-    # check if grid user and group settings are in the config file
-    # TRUE anywhere overides false in this case
-    cfg_grid_user=$( cfgGetD "$CONF_FILE" srvr_grid_user  "$DEF_CONF_FILE" grid_user );
-    if [ "${cfg_grid_user^^}" == "TRUE" ] || [ "${grid_user}" == "TRUE" ]; then grid_user="TRUE"; fi
+    # settings that must come from the server config file
+    if [ -z "${ora_db_data:-}" ]; then ora_db_data=$( cfgGet "$CONF_FILE" ora_db_data ); fi
 
     # output some test information
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "disk_list: $disk_list" I "NONE" ; fi
@@ -134,7 +135,6 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lsnr_port: $lsnr_port" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkgs: $lnx_pkgs" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "lnx_pkg_tool: $lnx_pkg_tool" I "NONE" ; fi
-    if [ "$TEST" == "TRUE" ]; then logMesg 0 "grid_user: $grid_user" I "NONE" ; fi
 
     # OS version
     os_ver=$( /bin/grep '^VERSION_ID' /etc/os-release | /bin/tr -d '"' | /bin/cut -d . -f 1 | /bin/cut -d = -f 2 )
@@ -159,10 +159,9 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         fi
     done
 
-    # Setup ownership for directories (future work
+    # Setup ownership for directories (future work)
     #ora_base
     #srvr_ora_base
-    #ora_db_data
 
     # install required packages
     if [ "${lnx_pkgs}" == "" ]; then
@@ -181,35 +180,32 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         logMesg 0 "RNGD not installed, skipping enablement" I "NONE"
     fi
 
-    # Add grid user and ASM groups if needed
-    if [ "${grid_user}" == "TRUE" ]; then
-        logMesg 0 "Adding grid user and ASM groups " I "NONE"
-        /sbin/groupadd -g 54327 asmdba
-        /sbin/groupadd -g 54328 asmoper
-        /sbin/groupadd -g 54329 asmadmin
-        /sbin/useradd -N -s /bin/bash -u 54331 -g oinstall -G asmdba,asmoper,asmadmin grid 
-        
-        logMesg 0 "Adding oracle user to all ASM groups " I "NONE"
-        /sbin/usermod -aG asmdba,asmoper,asmadmin oracle
+    # GRID install specific OS changes
+    if [ "${GRID_INSTALL}" == "TRUE" ]; then
 
         # for grid install, listener configuration has issues with IPv6 line in hosts file
         /bin/sed -i "/^::1 $( /bin/hostname )/d" /etc/hosts
-    fi
 
-    # Remove IPv6 entries if we are setting up grid
-    if [ "$grid_user" == "TRUE" ]; then
+        # also remove IPv6 from tempalte files
         host_tmpl="/etc/cloud/templates/hosts.redhat.tmpl /etc/cloud/templates/hosts.debian.tmpl"
         for tmpl_file in ${host_tmpl}; do
             /usr/bin/sed -i '/^::1./d' "${tmpl_file}"
             /usr/bin/sed -i '/IPv6/d' "${tmpl_file}"
         done
+
+        # Disable SELinux if we are installing grid
+        /usr/bin/sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
     fi
 
-    # Disable SELinux if we are installing grid
-    if [ "$grid_user" == "TRUE" ]; then
-        /usr/bin/sed -i 's/^SELINUX=./SELINUX=disabled/g' /etc/selinux/config
+    # make DB directory
+    if [ "${ora_db_data:0:1}" == "+" ]; then
+        logMesg 0 "Using ASM disk group ${ora_db_data} no fs directory created." I "NONE" 
+    else
+        [ ! -d "${ora_db_data}" ] && /usr/bin/sudo sh -c  "/bin/mkdir -p ${ora_db_data}"
+        /usr/bin/sudo sh -c "/usr/bin/chown 54321 ${ora_db_data}"
+        /usr/bin/sudo sh -c "/usr/bin/chgrp 54321 ${ora_db_data}"
     fi
-
+    
     # make additional oradata folders
     for disk in $( echo "${disk_list}" | /bin/tr "," " " ); do
         mount=$( echo "${disk}" | /bin/cut -d : -f 1 )
