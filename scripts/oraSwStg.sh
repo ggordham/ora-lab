@@ -284,12 +284,21 @@ if checkopt_oraSwStg "$OPTIONS" ; then
             else
                 "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" destination="${stg_dir}/patch" "${debug_flag}"
                 error_code=$?
+                # for some one off patches there will be subversions by RU.  We will try to check 
+                #   the RU number with regexp
+                if (( error_code > 0 )); then
+                    "${SCRIPTDIR}/getMOSPatch.sh" patch="$p_patch" regexp="${ora_sub_ver/_}" destination="${stg_dir}/patch" "${debug_flag}"
+                    error_code=$?
+                fi
                 # if things are good unzip the patch file
                 if (( error_code == 0 )); then
                     p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                     [[ -f "$p_file" ]] && chown "${conf_user}":oinstall "${p_file}"
                     [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
                 else
+                    # for some one off patches there will be subversions by RU.  We will try to check 
+                    #   the RU number with regexp
+                        
                     logMesg 0 "Could not download patch: $p_patch" E "NONE"
                 fi 
             fi
