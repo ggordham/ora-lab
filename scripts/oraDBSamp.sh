@@ -21,6 +21,7 @@ function help_oraDBSamp {
   echo >&2
   echo "Usage: $SCRIPTNAME [-h --debug --test ]         " >&2
   echo "-h          give this help screen               " >&2
+  echo "--db      [DB connect string]                   " >&2
   echo "--datatbs [Data Tablespace]                     " >&2
   echo "--temptbs [Temp Tablespace]                     " >&2
   echo "--stgdir  [Staging Directory]                   " >&2
@@ -37,7 +38,7 @@ function checkopt_oraDBSamp {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,stgdir:,datatbs:,temptbs -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,db:,stgdir:,datatbs:,temptbs -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
@@ -46,7 +47,9 @@ function checkopt_oraDBSamp {
             case $1 in
                "-h") help_oraDBSamp                          #  help
                      exit 1;;
-          "--stgdir") stg_dir="$2"
+          "--db") db_name="$2"
+                     shift 2;;
+           "--stgdir") stg_dir="$2"
                      shift 2;;
           "--datatbs") samp_tablespace="$2"
                      shift 2;;
@@ -117,16 +120,30 @@ if checkopt_oraDBSamp "$OPTIONS" ; then
         exit 1
     fi
 
-    # decide on what SID or PDB to use for install
-    ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid )
-    ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb )
-
-    if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
-        logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
-        db_name="${ora_db_sid}"
-    else
-        logMesg 0 "PDB defined, installing into: $ora_db_pdb" I "NONE"
-        db_name="${ora_db_pdb}"
+    # check if db_name was set on the comamnd line
+    if [ -z "${db_name:-}" ]; then 
+        # decide on what SID or PDB to use for install
+        # check settings, otherwise lookup default setting
+        if [ -z "${ora_db_sid:-}" ]; then ora_db_sid=$( cfgGet "$CONF_FILE" ora_db_sid ); fi
+        if [ -z "${ora_db_type:-}" ]; then ora_db_type=$( cfgGet "$CONF_FILE" ora_db_type ); fi
+        if [ -z "${ora_db_pdb:-}" ]; then ora_db_pdb=$( cfgGet "$CONF_FILE" ora_db_pdb ); fi
+ 
+        if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_sid: $ora_db_sid" I "NONE" ; fi
+        if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_type: $ora_db_type" I "NONE" ; fi
+        if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_db_pdb: $ora_db_pdb" I "NONE" ; fi
+  
+        # check for container database
+        case "${ora_db_type}" in
+          "CDB")
+            logMesg 0 "CDB defined using PDB: $ora_db_pdb" I "NONE"
+            db_name="${ora_db_pdb}";;
+          "NCDB")
+            logMesg 0 "Non CDB defined using SID: $ora_db_sid" I "NONE"
+            db_name="${ora_db_sid}";;
+          *)
+            logMesg 1 "DB Type $ora_db_type not supported!" E "NONE"
+            exit 1;
+        esac
     fi
 
     # get server specific settings for Listener
