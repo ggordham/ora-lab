@@ -158,10 +158,11 @@ if checkopt_oraRWLSetup "$OPTIONS" ; then
         rwl_file="${ora_db_data}"
     else
         # Adjust based on if PDB is configured or not
-        if [ "${ora_db_pdb}" == "__UNDEFINED__" ] || [ -z "${ora_db_pdb:-}" ] ; then
-            logMesg 0 "No PDB defined, assuming database is a NON-CDB: $ora_db_sid" I "NONE"
+        if [ "${ora_db_type}" == "NCDB" ] ; then
+            logMesg 0 "Database is a NON-CDB: $ora_db_sid" I "NONE"
             rwl_file="${ora_db_data}/${ora_db_sid}/data01.dbf" 
         else
+            logMesg 0 "Database is a CDB, using PDB: $ora_db_pdb" I "NONE"
             export ORACLE_PDB_SID=${ora_db_pdb}
             rwl_file="${ora_db_data}/${ora_db_sid^^}/${ora_db_pdb}/data01.dbf" 
         fi

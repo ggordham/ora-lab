@@ -104,10 +104,10 @@ function sqlcl_inst () {
 
   # unzip the install
   if [ -f "${my_stgdir}/${my_file}" ]; then
-      /bin/unzip "${my_stgdir}/${my_file}" -d "${my_base}"
+      /bin/unzip -q "${my_stgdir}/${my_file}" -d "${my_base}"
 
       # add the alias for SQLcl to user profile
-      echo "alias sql='${my_base}/bin/sql'" >> /home/oracle/.bashrc
+      echo "alias sql='${my_base}/sqlcl/bin/sql'" >> /home/oracle/.bashrc
   else
       logMesg 1 "Could not download the SQLcl install file: ${my_sqlcl_url}" E "NONE";
       my_return=1
