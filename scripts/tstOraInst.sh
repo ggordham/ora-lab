@@ -148,6 +148,13 @@ if inListC "${build_steps}" "rwls" && (( stp_status == 0 )); then
     stp_status=$?
 fi
 
+# Install Oracle tools (tool)
+if inListC "${build_steps}" "tool" && (( stp_status == 0 )); then
+    options="--oratool sqlcl"
+    run_step cfg oracle oraTools.sh "${log_file}" "${options}" 
+    stp_status=$?
+fi
+
 # configure oracle user profile (cfg)
 if inListC "${build_steps}" "cfg" && (( stp_status == 0 )); then
     options=""
