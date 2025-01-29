@@ -38,7 +38,7 @@ function checkopt_oraDBSamp {
     typeset -i badopt=0
 
     # shellcheck disable=SC2068
-    my_opts=$(getopt -o hv --long debug,test,version,db:,stgdir:,datatbs:,temptbs -n "$SCRIPTNAME" -- $@)
+    my_opts=$(getopt -o hv --long debug,test,version,db:,stgdir:,datatbs:,temptbs: -n "$SCRIPTNAME" -- $@)
     if (( $? > 0 )); then
         (( badopt=1 ))
     else
