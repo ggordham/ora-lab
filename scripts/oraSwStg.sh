@@ -151,8 +151,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         logMesg 1 "Failed to setup stg_dir: $stg_dir " E "NONE"
     fi
 
-    # check if the version is valid, and lookup settings for this version
-    if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}" ; then
+    # check if the version and subversion are valid, and lookup settings for this version
+    if inListC "$( cfgGet "${ORA_CONF_FILE}" main_versions )" "${ora_ver}"  && inListC "$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_sub_versions" )" "${ora_sub_ver}" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "Found version: $ora_ver" I "NONE" ; fi
         install_type=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_install_type" )
         case "${ora_type}" in
@@ -347,7 +347,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
 
     else
         # Version of Oracle not found in config file
-        logMesg 0 "ERROR! Did not find version: $ora_ver in config file $ORA_CONF_FILE" E "NONE"
+        logMesg 0 "ERROR! Did not find version: $ora_ver or subversion: $ora_sub_ver in config file $ORA_CONF_FILE" E "NONE"
         error_code=2
     fi
 

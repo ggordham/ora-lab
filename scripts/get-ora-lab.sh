@@ -20,7 +20,7 @@ log_file=/tmp/get-ora-lab-$( date +%Y%m%d-%H%M%S ).log
 cur_user=$( /usr/bin/id -un )
 cur_group=$( /usr/bin/id -gn )
 refresh=FALSE
-ora_scrpt_list="oraDBCA.sh oraRWLRun.sh oraRWLSetup.sh oraTNS.sh oraLsnr.sh oraDBSamp.sh oraTools.sh"
+ora_scrpt_list="oraDBCA.sh oraRWLRun.sh oraRWLSetup.sh oraTNS.sh oraLsnr.sh oraDBSamp.sh oraTools.sh oraPDBClone.sh"
 
 # retun command line help information
 function help_get-ora-lab {

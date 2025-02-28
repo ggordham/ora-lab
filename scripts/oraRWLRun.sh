@@ -150,7 +150,7 @@ if checkopt_oraRWLRun "$OPTIONS" ; then
     if [ "$rwl_proc" == "__UNDEFINED__" ] || [ -z "$rwl_proc" ]; then
         logMesg 0 "Number of processes not defined defaulting to 1" I "NONE"
     else
-        rwl_cmd_opts="${rwl_cmd_opts} -n ${rwl_proc} ${rwl_add_opt}"
+        rwl_cmd_opts="${rwl_cmd_opts} -n ${rwl_proc} ${rwl_add_opt:-}"
     fi
     
     # Run the OLTP workload
