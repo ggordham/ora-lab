@@ -146,7 +146,7 @@ if [ "${refresh}" == "FALSE" ]; then
     if [ "$TEST" == "TRUE" ]; then
         echo "Test mode, not running: /usr/bin/nohup /bin/bash -c /usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" | /usr/bin/tee -a "${log_file}"
     else
-        /usr/bin/nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" > /tmp/ora-lab-reboot.log &
+        /usr/bin/nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" > /tmp/ora-lab-reboot.log 2>&1 &
         jobs | /usr/bin/tee -a "${log_file}"
     fi
 fi
