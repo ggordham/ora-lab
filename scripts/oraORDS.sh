@@ -79,20 +79,48 @@ function checkopt_oraORDS {
 
 }
 
+create_target_dirs () {
+
+    # create the target directories
+    [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
+    [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
+    [[ ! -d "${ORDS_CONFIG}" ]] && mkdir -p "${ORDS_CONFIG}"
+    [[ ! -d "${ords_logs}" ]] && mkdir -p "${ords_logs}"
+    /usr/bin/chown oracle:oinstall "${ords_path}"
+    /usr/bin/chown oracle:oinstall "${ords_admin}"
+    /usr/bin/chown oracle:oinstall "${ORDS_CONFIG}"
+    /usr/bin/chown oracle:oinstall "${ords_logs}"
+
+}
+
+load_ords_url () {
+
+    local my_ords_latest
+    local my_ords_file
+
+    my_ords_latest=$( cfgGet "$CONF_FILE" ords_latest )
+    my_ords_file="$( /bin/basename "${my_ords_latest}" )"
+    # create install location
+    create_target_dirs
+    # Download the latest version
+    cd "${ords_path}" || logMesg 1 "Could not find install path: ${ords_path}" E "NONE" || exit 1
+    /bin/curl -O -L "${my_ords_latest}"
+    cd - || exit 1
+
+    if [ -f "${ords_path}/${my_ords_file}" ]; then
+        /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ords_path} ${ords_path}/${my_ords_file}"
+    else
+        echo "ERROR! could not download ORDS install file at: ${my_ords_latest}"
+        exit 1
+    fi
+      
+  
+}
 
 load_ords_file () {
     # check if the ORDS install file is there
     if [ -f "${ords_src}" ]; then
-        # create the target directories
-        [[ ! -d "${ords_path}" ]] && mkdir -p "${ords_path}"
-        [[ ! -d "${ords_admin}" ]] && mkdir -p "${ords_admin}"
-        [[ ! -d "${ORDS_CONFIG}" ]] && mkdir -p "${ORDS_CONFIG}"
-        [[ ! -d "${ords_logs}" ]] && mkdir -p "${ords_logs}"
-        /usr/bin/chown oracle:oinstall "${ords_path}"
-        /usr/bin/chown oracle:oinstall "${ords_admin}"
-        /usr/bin/chown oracle:oinstall "${ORDS_CONFIG}"
-        /usr/bin/chown oracle:oinstall "${ords_logs}"
- 
+        create_target_dirs
         # load the ORDS software
         /usr/bin/su oracle -c "/usr/bin/unzip -q -o -d ${ords_path} ${ords_src}"
     else
@@ -103,11 +131,22 @@ load_ords_file () {
 } 
 
 load_ords_repo () {
+
+    local my_os_ver
+    local my_repo_url
+    local my_ords_repo
+    my_ords_repo=$( cfgGet "$CONF_FILE" ords_repo )
+
+    # OS version
+    my_os_ver=$( /bin/grep '^VERSION_ID' /etc/os-release | /bin/tr -d '"' | /bin/cut -d . -f 1 | /bin/cut -d = -f 2 )
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "Detected OS Version: $my_os_ver" I "NONE" ; fi
+ 
+    # Fix repo URL for OS version
+    my_repo_url=${ords_repo/OLX/OL${my_os_ver}}
+
     # load ORDS from repo
-    if [ "${ords_use_repo}" == "TRUE" ]; then
-        /usr/bin/yum-config-manager --add-repo="${ords_repo}"
-        /usr/bin/yum install ords
-    fi
+    /usr/bin/yum-config-manager --add-repo="${my_repo_url}"
+    /usr/bin/yum install ords
 }
 ############################################################################################
 # start here
@@ -127,6 +166,8 @@ if checkopt_oraORDS "$OPTIONS" ; then
     
     if [ -z "${ords_path:-}" ]; then ords_path=$( cfgGetD "$CONF_FILE" srvr_ords_path "$ORA_CONF_FILE" ords_path ); fi
     if [ -z "${ords_src:-}" ]; then ords_src=$( cfgGetD "$CONF_FILE" srvr_ords_src "$ORA_CONF_FILE" ords_src ); fi
+    if [ -z "${ords_java:-}" ]; then ords_java=$( cfgGetD "$CONF_FILE" srvr_ords_java "$ORA_CONF_FILE" ords_java ); fi
+    if [ -z "${ords_addrpm:-}" ]; then ords_addrpm=$( cfgGetD "$CONF_FILE" srvr_ords_addrpm "$ORA_CONF_FILE" ords_addrpm ); fi
     if [ -z "${ords_port:-}" ]; then ords_port=$( cfgGetD "$CONF_FILE" srvr_ords_port "$ORA_CONF_FILE" ords_port ); fi
     if [ -z "${ords_admin:-}" ]; then ords_admin=$( cfgGetD "$CONF_FILE" srvr_ords_admin "$ORA_CONF_FILE" ords_admin ); fi
     if [ -z "${ords_load_from:-}" ]; then ords_load_from=$( cfgGetD "$CONF_FILE" srvr_ords_load_from "$ORA_CONF_FILE" ords_load_from ); fi
@@ -134,6 +175,8 @@ if checkopt_oraORDS "$OPTIONS" ; then
     # output some test information
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_path: $ords_path" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_src: $ords_src" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_java: $ords_java" I "NONE" ; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_addrpm: $ords_addrpm" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_port: $ords_port" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_admin: $ords_admin" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ords_load_from: $ords_load_from" I "NONE" ; fi
@@ -196,8 +239,10 @@ if checkopt_oraORDS "$OPTIONS" ; then
 
     # install java if it is not arlready installed
     #   Note lsof used by systemctl start script for ords
-    /usr/bin/yum -y install java-11-openjdk lsof
-    if (( $? > 0 )) ; then echo "ERROR could not install Java 11"; exit 1; fi
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "Installing requiredl RPMs: ${ords_java} ${ords_addrpm}" I "NONE" 
+        elif [ -f /usr/bin/dnf ]; then /usr/bin/dnf -y install "${ords_java} ${ords_addrpm}"
+        else /bin/yum -y install "${ords_java} ${ords_addrpm}"; fi
+    if (( $? > 0 )) ; then echo "ERROR could not install required RPMs: ${ords_java} ${ords_addrpm}"; exit 1; fi
 
     # Set the Java environment, make sure select java is first in path
     JAVA_HOME=$( /usr/sbin/alternatives --list | /usr/bin/grep jre_11_openjdk | /usr/bin/cut -f3 )
@@ -208,6 +253,10 @@ if checkopt_oraORDS "$OPTIONS" ; then
     case "${ords_load_from}" in
       "repo") load_ords_repo;;
       "file") load_ords_file;;
+      "url") load_ords_url;;
+      *) logMesg 1 "Invalid install method: ${ords_load_from}" E "NONE"
+         exit 1;
+         ;;
     esac
 
         # Install ORDS into the database
