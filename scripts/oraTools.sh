@@ -116,6 +116,44 @@ function sqlcl_inst () {
   return ${my_return}
 }
 
+# function autoup_inst /u01/app/oracle/product/19/dbhome_1
+#
+function sqlcl_inst () {
+
+  local my_ora_home=$1
+
+  local my_autoup_url
+  local my_return
+  local my_autoup_dir="${my_ora_home}/rdbms/admin"
+
+  my_return=0
+
+  # get SQLcl URL
+  my_autoup_url=$( cfgGet "${ORA_CONF_FILE}" "autoup_latest" )
+
+  # verify Oracle Home location exists
+  if [ -d "${my_autoup_dir}" ]; then
+
+      # Remove the previous version
+      [ -f "${my_autoup_dir}/autoupgrade.jar" ] && /bin/rm "${my_autoup_dir}/autoupgrade.jar"
+
+      # download the file
+      cd "${my_autoup_dir}"
+      /bin/curl -O -L "${my_autoup_url}"
+      if (( $? > 0 )); then
+          logMesg 1 "Could not download autoupgrade.jar from: ${my_autoup_url}" E "NONE";
+          my_return=1
+      fi
+      cd -
+
+  else
+      logMesg 1 "Could not locate ORACLE_HOME ${my_ora_home} to install autoupgarde.jar" E "NONE";
+      my_return=1
+  fi
+
+  return ${my_return}
+}
+
 ############################################################################################
 # start here
 
@@ -158,9 +196,15 @@ if checkopt_oraTools "$OPTIONS" ; then
             sqlcl_inst "${stg_dir}" "${ora_base}"
             ;;
         "AUTOUP")
-            logMesg 0 "AUTOUPGRADE install not supported yet." I "NONE"
+            logMesg 0 "AUTOUPGRADE installing latest version under ${ora_home}" I "NONE"
+            autoup_inst "${ora_home}"
             ;;
         "ALL")
+            logMesg 0 "Installing all supported DB tools." I "NONE"
+            logMesg 0 "Installing SQLcl under ${ora_base}/sqlcl" I "NONE"
+            sqlcl_inst "${stg_dir}" "${ora_base}"
+            logMesg 0 "AUTOUPGRADE installing latest version under ${ora_home}" I "NONE"
+            autoup_inst "${ora_home}"
             ;;
     esac;
 

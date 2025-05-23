@@ -119,6 +119,12 @@ if inListC "${build_steps}" "lsnr" && (( stp_status == 0 )); then
     /bin/sleep 60
 fi
 
+# Install Oracle tools (tool)
+if inListC "${build_steps}" "tool" && (( stp_status == 0 )); then
+    options="--oratool sqlcl"
+    run_step cfg oracle oraTools.sh "${log_file}" "${options}" 
+    stp_status=$?
+fi
 
 # Install Oracle Rest Data Services (ords)
 if inListC "${build_steps}" "ords" && (( stp_status == 0 )); then
@@ -145,13 +151,6 @@ fi
 if inListC "${build_steps}" "rwls" && (( stp_status == 0 )); then
     options=""
     run_step rwlset oracle oraRWLSetup.sh "${log_file}" "${options}" 
-    stp_status=$?
-fi
-
-# Install Oracle tools (tool)
-if inListC "${build_steps}" "tool" && (( stp_status == 0 )); then
-    options="--oratool sqlcl"
-    run_step cfg oracle oraTools.sh "${log_file}" "${options}" 
     stp_status=$?
 fi
 
