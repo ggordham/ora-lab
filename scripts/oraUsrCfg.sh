@@ -13,15 +13,15 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 # retun command line help information
 function help_oraUserCfg {
   echo >&2
-  echo "$SCRIPTNAME                                    " >&2
-  echo "   used to run DBCA to create Oracle database  " >&2
-  echo "   version: $SCRIPTVER                         " >&2
+  echo "$SCRIPTNAME                                      " >&2
+  echo "   used to configure orcle OS user for usability " >&2
+  echo "   version: $SCRIPTVER                           " >&2
   echo >&2
-  echo "Usage: $SCRIPTNAME [-h --debug --test ]        " >&2
-  echo "-h          give this help screen               " >&2
-  echo "--debug     turn on debug mode                  " >&2
-  echo "--test      turn on test mode, disable DBCA run " >&2
-  echo "--version | -v Show the script version          " >&2
+  echo "Usage: $SCRIPTNAME [-h --debug --test ]          " >&2
+  echo "-h          give this help screen                " >&2
+  echo "--debug     turn on debug mode                   " >&2
+  echo "--test      turn on test mode, disable DBCA run  " >&2
+  echo "--version | -v Show the script version           " >&2
 }
 
 #check command line options
@@ -96,6 +96,9 @@ export PATH
 alias cdoh='cd \$ORACLE_HOME'
 
 !EOA
+
+    # Install login script
+    echo "${SCRIPTDIR}/ora-lab-login.sh" >> /home/oracle/.bashrc
 
     # setup extra SSH keys for remote access
     ssh_keys="$( getSecret EXTRA_SSH )"

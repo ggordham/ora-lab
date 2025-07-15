@@ -20,7 +20,7 @@ function help_oraTNS {
   echo "--port      [TCP Port]                          " >&2
   echo "--tnsfile   [TNS File]                          " >&2
   echo "--debug     turn on debug mode                  " >&2
-  echo "--test      turn on test mode, disable DBCA run " >&2
+  echo "--test      turn on test mode                   " >&2
   echo "--version | -v Show the script version          " >&2
 }
 

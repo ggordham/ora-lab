@@ -240,8 +240,8 @@ if checkopt_oraORDS "$OPTIONS" ; then
     # install java if it is not arlready installed
     #   Note lsof used by systemctl start script for ords
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "Installing requiredl RPMs: ${ords_java} ${ords_addrpm}" I "NONE" 
-        elif [ -f /usr/bin/dnf ]; then /usr/bin/dnf -y install "${ords_java} ${ords_addrpm}"
-        else /bin/yum -y install "${ords_java} ${ords_addrpm}"; fi
+        elif [ -f /usr/bin/dnf ]; then /usr/bin/dnf -y install ${ords_java} ${ords_addrpm}
+        else /bin/yum -y install ${ords_java} ${ords_addrpm}; fi
     if (( $? > 0 )) ; then echo "ERROR could not install required RPMs: ${ords_java} ${ords_addrpm}"; exit 1; fi
 
     # Set the Java environment, make sure select java is first in path
