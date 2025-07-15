@@ -12,6 +12,7 @@
 SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 
+wait_sec=60
 repo_url=https://github.com/ggordham/ora-lab
 package_root=ggordham-ora-lab
 target=scripts
@@ -144,9 +145,9 @@ if [ "${refresh}" == "FALSE" ]; then
     #  Be sure to exit 0 for terraform to get good status
     echo "initiating reboot $( date )" | /usr/bin/tee -a "${log_file}"
     if [ "$TEST" == "TRUE" ]; then
-        echo "Test mode, not running: /usr/bin/nohup /bin/bash -c /usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" | /usr/bin/tee -a "${log_file}"
+        echo "Test mode, not running: /usr/bin/nohup /bin/bash -c /usr/bin/sleep ${wait_sec} && /usr/bin/sudo /usr/sbin/reboot" | /usr/bin/tee -a "${log_file}"
     else
-        /usr/bin/nohup /bin/bash -c "/usr/bin/sleep 40 && /usr/bin/sudo /usr/sbin/reboot" > /tmp/ora-lab-reboot.log 2>&1 &
+        /usr/bin/nohup /bin/bash -c "/usr/bin/sleep &{wait_sec} && /usr/bin/sudo -u root /usr/sbin/reboot" >> /tmp/ora-lab-reboot.log 2>&1 &
         jobs | /usr/bin/tee -a "${log_file}"
     fi
 fi
