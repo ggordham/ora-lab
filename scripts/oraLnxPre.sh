@@ -240,6 +240,39 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         logMesg 0 "Software Mount disabled with option --sftno" I "NONE";
     fi
 
+    # Oracle pre-install RPM setup steps
+    # Get settings from server config file if not set on command line
+    if [ -z "${ora_ver:-}" ]; then ora_ver=$( cfgGet "$CONF_FILE" "srvr_ora_ver" ); fi
+    # Provide some infomration if in test mode
+    if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
+    
+    # install the required database pre-install RPM
+    # Pick the right rpm tool
+    rpm_tool="/usr/bin/yum" && [ -f /usr/bin/dnf ] && rpm_tool="/usr/bin/dnf"
+    preinstall_rpm=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_pre_install" )
+    if [ "$preinstall_rpm" == "__UNDEFINED__" ]; then logMesg 1 "Pre Install RPM not found for $ora_ver" E "NONE"; fi
+    if "${rpm_tool}" --quiet -q "${preinstall_rpm}"; then
+        logMesg 0 "preinstall_rpm: $preinstall_rpm ALREADY INSTALLED." I "NONE" 
+    elif [ "$TEST" == "TRUE" ]; then logMesg 0 "preinstall_rpm: $preinstall_rpm" I "NONE" 
+      else "${rpm_tool}" -y install "${preinstall_rpm}"; fi
+ 
+    # Add grid user and ASM groups if needed, setup OS limits
+    if [ "${GRID_INSTALL}" == "TRUE" ]; then
+        logMesg 0 "Adding grid user and ASM groups " I "NONE"
+        /sbin/groupadd -g 54327 asmdba
+        /sbin/groupadd -g 54328 asmoper
+        /sbin/groupadd -g 54329 asmadmin
+        /sbin/useradd -N -s /bin/bash -u 54331 -g oinstall -G asmdba,asmoper,asmadmin grid 
+        
+        logMesg 0 "Adding oracle user to all ASM groups " I "NONE"
+        /sbin/usermod -aG asmdba,asmoper,asmadmin oracle
+ 
+        # Setup grid user OS limits
+        /bin/cp /etc/security/limits.d/oracle-database-preinstall-19c.conf /etc/security/limits.d/oracle-grid-preinstall-19c.conf
+        /bin/sed -i 's/^oracle./grid/g' /etc/security/limits.d/oracle-grid-preinstall-19c.conf
+    fi
+
+
     logMesg 0 "oraLnxPre.sh finished" I "NONE"
 
 else
