@@ -128,8 +128,11 @@ function sqlcl_inst () {
 
   my_return=0
 
-  # get SQLcl URL
+  # get autoupgrade URL
   my_autoup_url=$( cfgGet "${ORA_CONF_FILE}" "autoup_latest" )
+
+  # if ORACLE_HOME is not there, then stage in /tmp for other usage
+  [ ! -d "${my_autoup_dir}" ] && my_autoup_dir=/tmp
 
   # verify Oracle Home location exists
   if [ -d "${my_autoup_dir}" ]; then
@@ -138,13 +141,13 @@ function sqlcl_inst () {
       [ -f "${my_autoup_dir}/autoupgrade.jar" ] && /bin/rm "${my_autoup_dir}/autoupgrade.jar"
 
       # download the file
-      cd "${my_autoup_dir}"
+      cd "${my_autoup_dir}" || exit 1
       /bin/curl -O -L "${my_autoup_url}"
       if (( $? > 0 )); then
           logMesg 1 "Could not download autoupgrade.jar from: ${my_autoup_url}" E "NONE";
           my_return=1
       fi
-      cd -
+      cd - || exit 1
 
   else
       logMesg 1 "Could not locate ORACLE_HOME ${my_ora_home} to install autoupgarde.jar" E "NONE";
