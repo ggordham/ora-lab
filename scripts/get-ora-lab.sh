@@ -106,8 +106,8 @@ fi
 # make the target directory for ora-lab
 echo "  Making target path: $target_path" | /usr/bin/tee -a "${log_file}"
 [[ ! -d "${target_path}" ]] && sudo /usr/bin/mkdir "${target_path}" >> "${log_file}" 2>&1
-sudo /usr/bin/chown "${cur_user}" "${target_path}" >> "${log_file}" 2>&1
-sudo /usr/bin/chgrp "${cur_group}" "${target_path}" >> "${log_file}" 2>&1
+/usr/bin/sudo /usr/bin/chown "${cur_user}" "${target_path}" >> "${log_file}" 2>&1
+/usr/bin/sudo /usr/bin/chgrp "${cur_group}" "${target_path}" >> "${log_file}" 2>&1
 
 # download the ora-lab scripts
 echo "  Downloading ora-lab scripts from: ${repo_url}/scripts/tstOraInst.sh" | /usr/bin/tee -a "${log_file}"
@@ -119,7 +119,7 @@ else
 
     # fix ownership of scripts that should have oracle user access
     for scrpt in ${ora_scrpt_list}; do
-      /usr/bin/find ${target_path} -name "${scrpt}" -exec /usr/bin/chgrp 54321 {} \; >> "${log_file}" 2>&1
+      /usr/bin/sudo /usr/bin/find ${target_path} -name "${scrpt}" -exec /usr/bin/chgrp 54321 {} \; >> "${log_file}" 2>&1
     done
 fi
 

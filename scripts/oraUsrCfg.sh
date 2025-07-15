@@ -74,10 +74,9 @@ if checkopt_oraUsrCfg "$OPTIONS" ; then
     if [ "$DEBUG" == "TRUE" ]; then logMesg 0 "DEBUG Mode Enabled!" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "TEST Mode Enabled, commands will not be run." I "NONE" ; fi
 
-
     # generate SSH keys
     logMesg 0 "Generating new SSH keys for oracle user" I "NONE"
-    su - oracle -c "ssh-keygen -t RSA -b 2048 -f $HOME/.ssh/id_rsa -N ''"
+    su - oracle -c "/bin/ssh-keygen -t RSA -b 2048 -f \$HOME/.ssh/id_rsa -N ''"
 
     logMesg 0 "Installing oracle user command aliases and path updates" I "NONE"
     # setup path in ontime profile 
