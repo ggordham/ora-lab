@@ -215,6 +215,11 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
              /usr/bin/sudo sh -c "/usr/bin/chgrp 54321 ${mount}/oradata"
         fi
     done
+
+    # fix permissions on /u01/app
+    # NOTE: need to possibly fix this if /u01 is not used
+    /usr/bin/sudo sh -c "/usr/bin/chown -R 54321 /u01/app"
+    /usr/bin/sudo sh -c "/usr/bin/chgrp -R 54321 /u01/app"
      
     # Configure firewalld for Oracle Listener
     if [ -x /bin/firewall-cmd ]; then

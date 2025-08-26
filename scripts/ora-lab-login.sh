@@ -1,11 +1,14 @@
 #!/bin/bash
 # ora-lab-login.sh
+#
+# bypass if not interactive shell
+[[ ! $- =~ i ]] && exit
 
 # sets up some basic login banner and information
+SID_LIST=""
+[ -f /etc/oratab ] && SID_LIST=$( /bin/grep -v -E "^#|^$|+ASM" /etc/oratab | /bin/cut -d : -f 1 | /bin/sed 'H;1h;$!d;x;s/\n/ /g' )
 
-SID_LIST=$( /bin/grep -v -E "^#|^$|+ASM" /etc/oratab | /bin/cut -d : -f 1 | /bin/sed 'H;1h;$!d;x;s/\n/ /g' )
-
-OS_VER=$( /bin/grep -E '^(VERSION|NAME)=' /etc/os-release | /bin/cut -f2 -d= | /bin/tr -d '"' | /bin/tr -d '\n' )
+OS_VER=$( /bin/grep -E '^(VERSION|NAME)=' /etc/os-release | /bin/cut -f2 -d= | /bin/tr -d '"' | /bin/sed 's/\n/ /g' )
 
 echo "------------------------------- $( /bin/date )"
 echo "=== ora-lab server $( /bin/hostname -s ) on IP address $( /bin/hostname -i )"
