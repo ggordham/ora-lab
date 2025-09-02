@@ -256,7 +256,7 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
     rpm_tool="/usr/bin/yum" && [ -f /usr/bin/dnf ] && rpm_tool="/usr/bin/dnf"
     preinstall_rpm=$( cfgGet "${ORA_CONF_FILE}" "${ora_ver}_pre_install" )
     if [ "$preinstall_rpm" == "__UNDEFINED__" ]; then logMesg 1 "Pre Install RPM not found for $ora_ver" E "NONE"; fi
-    if "${rpm_tool}" --quiet -q "${preinstall_rpm}"; then
+    if /usr/bin/rpm --quiet -q "${preinstall_rpm}"; then
         logMesg 0 "preinstall_rpm: $preinstall_rpm ALREADY INSTALLED." I "NONE" 
     elif [ "$TEST" == "TRUE" ]; then logMesg 0 "preinstall_rpm: $preinstall_rpm" I "NONE" 
       else "${rpm_tool}" -y install "${preinstall_rpm}"; fi

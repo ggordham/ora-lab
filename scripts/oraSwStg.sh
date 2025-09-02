@@ -180,6 +180,15 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         elif [ "$TEST" == "TRUE" ]; then logMesg 0 "preinstall_rpm: $preinstall_rpm" I "NONE" 
           else "${rpm_tool}" -y install "${preinstall_rpm}"; fi
 
+        # add additional DB specific RPMs if needed
+        db_addrpm=$( cfgGetD "$CONF_FILE" "${ora_ver}_addrpm" "$ORA_CONF_FILE" "${ora_ver}_addrpm" )
+        if [ "${db_addrpm}" == "__UNDEFINED__" ]; then 
+            logMesg 0 "No additional DB RPMs to install for $ora_ver" I "NONE"
+        else
+            logMesg 0 "Installing additional DB specific RPM: $db_addrpm" I "NONE"
+            "${rpm_tool}" -y install "${db_addrpm}"
+        fi;
+
         # Add grid user and ASM groups if needed, setup OS limits
         if [ "${GRID_USER}" == "TRUE" ]; then
             logMesg 0 "Adding grid user and ASM groups " I "NONE"
