@@ -118,7 +118,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
     # check for settings that can be in server config or default config
     if [ -z "${stg_dir:-}" ]; then stg_dir=$( cfgGetD "$CONF_FILE" "srvr_stg_${conf_var}_dir" "$DEF_CONF_FILE" "stg_${conf_var}_dir" ); fi
     if [ -z "${ora_base:-}" ]; then ora_base=$( cfgGetD "$CONF_FILE" "srvr_${conf_var}_base" "$DEF_CONF_FILE" "${conf_var}_base" ); fi
-    ora_inst=$( /usr/bin/dirname "${ora_base}" )
+    ora_inst="$( /usr/bin/dirname "${ora_base}" )/oraInventory"
 
     # Provide some infomration if in test mode
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "ora_ver: $ora_ver" I "NONE" ; fi
@@ -262,6 +262,14 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             logMesg 0 " Running root scripts." I "NONE"; 
             [ -x "${ora_inst}"/orainstRoot.sh ] && "${ora_inst}"/orainstRoot.sh
             [ -x "${ora_home}"/root.sh ] && "${ora_home}"/root.sh
+
+            # fix for bequest connections failing due to missing sticky bit
+            chk_bit="6751"
+            cur_bit=$( /usr/bin/stat -c '%a' "${ora_home}/bin/oracle" )
+            if [ "${cur_bit}" != "${chk_bit}" ]; then
+                logMesg 0 "Fixing sticky bit on oracle binary." I "NONE"
+                /bin/chmod "${chk_bit}" "${ora_home}/bin/oracle"
+            fi
         fi
 
     else

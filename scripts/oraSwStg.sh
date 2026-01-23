@@ -185,8 +185,10 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         if [ "${db_addrpm}" == "__UNDEFINED__" ]; then 
             logMesg 0 "No additional DB RPMs to install for $ora_ver" I "NONE"
         else
-            logMesg 0 "Installing additional DB specific RPM: $db_addrpm" I "NONE"
-            "${rpm_tool}" -y install "${db_addrpm}"
+            for addrpm in $( echo "$db_addrpm" | /bin/tr "," " " ); do
+                logMesg 0 "Installing additional DB specific RPM: $addrpm" I "NONE"
+                "${rpm_tool}" -y install "${addrpm}"
+            done
         fi;
 
         # Add grid user and ASM groups if needed, setup OS limits

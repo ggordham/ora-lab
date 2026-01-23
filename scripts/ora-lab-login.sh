@@ -2,7 +2,8 @@
 # ora-lab-login.sh
 #
 # bypass if not interactive shell
-[[ ! $- =~ i ]] && exit
+#[[ ! $- =~ i ]] && exit
+[[ ! $- = *i* ]] && exit
 
 # sets up some basic login banner and information
 SID_LIST=""

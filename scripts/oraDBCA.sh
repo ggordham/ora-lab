@@ -88,7 +88,7 @@ OPTIONS=$@
 #   these do not come from configuration file for now
 export container_flag
 
-# verify that we are root to run this script
+# verify that we are oracle to run this script
 if [ "x$USER" != "xoracle" ];then logMesg 1 "You must be logged in as oracle to run this script" E "NONE"; exit 1; fi
 
 if checkopt_oraDBCA "$OPTIONS" ; then
