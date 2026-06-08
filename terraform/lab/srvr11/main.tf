@@ -12,7 +12,6 @@ module "module_ofnsrvr" {
   v_name = var.v_name
   v_desc = var.v_desc
   v_ip0 = var.v_ip0
-  v_ip1 = var.v_ip1
   v_srcvm = var.v_srcvm
   v_tgtnode = var.v_tgtnode
   v_pool = var.v_pool

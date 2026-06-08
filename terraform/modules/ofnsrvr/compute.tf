@@ -49,11 +49,13 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
   # this section will set the cloud-init hosts file template, load get-ofn.sh script and setup storage
   provisioner "remote-exec" {
     inline = [
-      "sudo /bin/sed -i '/127.0.1.1 {{fqdn}} {{hostname}}/d' /etc/cloud/templates/hosts.redhat.tmpl",
-      "sudo echo $( /bin/hostname -i ) {{fqdn}} {{hostname}} >> /etc/cloud/templates/hosts.redhat.tmpl",
-      "/usr/bin/curl https://raw.githubusercontent.com/ggordham/ofn/main/get-ofn.sh > /tmp/get-ofn.sh",
-      "/bin/bash /tmp/get-ofn.sh > /tmp/tera-get-ofn.log &2>1"
-      "sudo /opt/ofn/tests/ofn_tera_storage.sh > /tmp/ofn_tera_storage.log 2>&1",
+      "/usr/bin/sudo su -c \"/bin/sed -i 's/127.0.1.1 {{fqdn}} {{hostname}}//g' /etc/cloud/templates/hosts.redhat.tmpl\"",
+      "/usr/bin/sudo su -c \"echo $( /bin/hostname -I ) {{fqdn}} {{hostname}} >> /etc/cloud/templates/hosts.redhat.tmpl\"",
+      "/usr/bin/curl https://raw.githubusercontent.com/ggordham/ofn/main/getofn.sh > /tmp/getofn.sh",
+      "/bin/chmod +x /tmp/getofn.sh",
+      "echo Running getofn.sh",
+      "/bin/bash /tmp/getofn.sh > /tmp/tera-getofn.log --reboot 2>&1",
+      "sudo /opt/ofn/tests/ofn_tera_storage.sh > /tmp/ofn_tera_storage.log 2>&1"
     ]
     connection {
       type = "ssh"

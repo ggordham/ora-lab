@@ -21,11 +21,6 @@ variable "v_ip0" {
   default = "172.0.0.1/24"
 }
 
-variable "v_ip1" {
-  type = string
-  default = "172.0.0.2/24"
-}
-
 variable "v_cores" {
   type = number
   default = 1
