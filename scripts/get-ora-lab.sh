@@ -155,7 +155,7 @@ if [ "${refresh}" == "FALSE" ]; then
         echo "#/usr/bin/rm ${reboot_script}" >> "${reboot_script}"
         /bin/chmod +x "${reboot_script}"
         
-        /usr/bin/nohup /bin/bash "${reboot_script}" >> /tmp/ora-lab-reboot.log 2>&1 &
+        /usr/bin/nohup /bin/bash "/tmp/reboot.sh" >> /tmp/ora-lab-reboot.log 2>&1 &
         jobs | /usr/bin/tee -a "${log_file}"
     fi
 fi
