@@ -4,7 +4,7 @@
 
 # Internal settings, export empty variable that is set by library
 export SCRIPTDIR
-SCRIPTVER=1.1
+SCRIPTVER=1.2
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 error_code=0
@@ -236,6 +236,9 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         for m_file in $( echo "$main_file" | tr "," " " ); do
             if [ -f "${src_dir}/${m_file}" ]; then 
                 case "$install_type" in
+                    "gldimgru")
+                        logMesg 0 "Gold Image RU install, no media to unzip to start" I "NONE"
+                        ;;
                     "unzip")
                         # for 18c and above unzip the source media to the home location
                         if [ "$TEST" == "TRUE" ]; then logMesg 0 "not unziping $m_file to $ora_home" I "NONE" 
@@ -259,11 +262,18 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         case "${ora_type}" in
            "DB") 
                ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
-               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" );;
-
+               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
+               if [ "${install_type}" == "gldimgru" ]; then
+                 gl_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_DB_GLD" )
+               fi
+               ;;
            "GRID") 
                ru_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_GI" )
-               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_GI_ONEOFF" );;
+               one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_GI_ONEOFF" )
+               if [ "${install_type}" == "gldimgru" ]; then
+                 gl_list=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_GI_GLD" )
+               fi
+               ;;
         esac
 
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_list: $ru_list" I "NONE" ; fi
@@ -280,6 +290,8 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         export mosUser mosPass
 
         # Generate a list of patches for RU and One Offs
+        if [ "$gl_list" == "__UNDEFINED__" ]; then logMesg 0 "No Gold Images to download for $ora_sub_ver" I "NONE"
+            else p_list="$gl_list"; logMesg 0 "Gold Images list: $gl_list" I "NONE"; fi
         if [ "$ru_list" == "__UNDEFINED__" ]; then logMesg 0 "No RU patch to download for $ora_sub_ver" I "NONE"
             else p_list="$ru_list"; logMesg 0 "RU patches: $ru_list" I "NONE"; fi
         if [ "$one_off" == "__UNDEFINED__" ]; then logMesg 0 "No one off patchs to download for $ora_sub_ver" I "NONE"
@@ -308,7 +320,15 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                 if (( error_code == 0 )); then
                     p_file="$( ls "${stg_dir}/patch/p${p_patch}"*.zip )"
                     [[ -f "$p_file" ]] && chown "${conf_user}":oinstall "${p_file}"
-                    [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
+                    # check if this is a gold image RU, then install in home dir, otherwise stage patch
+                    #  note may want to switch to in list check at some point
+                    if [ "${p_patch}" == "${gl_list}" ]; then
+                        logMesg 0 "Gold Image RU - ${p_patch} unziping to home: ${ora_home}" I "NONE" 
+                        [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${ora_home}"
+                    else
+                        logMesg 0 "Staging - ${p_patch} unziping to: ${stg_dir}/patch" I "NONE" 
+                        [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${stg_dir}/patch"
+                    fi
                 else
                     # for some one off patches there will be subversions by RU.  We will try to check 
                     #   the RU number with regexp
@@ -349,7 +369,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
                         logMesg 0 "Could not download opatch: $p_patch" E "NONE"
                     fi 
                     # if unzip install type then update OPatch in place
-                    if [ "$install_type" == "unzip" ]; then
+                    if [ "$install_type" == "unzip" ] || [ "$install_type" == "gldimgru" ] ; then
                         [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/rm -Rf ${ora_home}/OPatch"
                         [[ -f "$p_file" ]] && /usr/bin/su "${conf_user}" -c "/usr/bin/unzip -q -o ${p_file} -d ${ora_home}"
                     fi

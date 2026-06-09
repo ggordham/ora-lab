@@ -3,7 +3,7 @@
 
 # Internal settings
 export SCRIPTDIR
-SCRIPTVER=1.1
+SCRIPTVER=1.2
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
@@ -146,7 +146,7 @@ if checkopt_oraSwInst "$OPTIONS" ; then
         if [ "$TEST" == "TRUE" ]; then logMesg 0 "src_dir: $src_dir" I "NONE" ; fi
 
         # if install type is unzip for 18c and above
-        if [ "$install_type" = "unzip" ]; then
+        if [ "$install_type" = "unzip" ] || [ "$install_type" = "gldimgru" ] ; then
 
             # looking up RU patches
             ru_patch=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )

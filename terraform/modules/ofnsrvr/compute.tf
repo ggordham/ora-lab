@@ -52,10 +52,14 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
       "/usr/bin/sudo su -c \"/bin/sed -i 's/127.0.1.1 {{fqdn}} {{hostname}}//g' /etc/cloud/templates/hosts.redhat.tmpl\"",
       "/usr/bin/sudo su -c \"echo $( /bin/hostname -I ) {{fqdn}} {{hostname}} >> /etc/cloud/templates/hosts.redhat.tmpl\"",
       "/usr/bin/curl https://raw.githubusercontent.com/ggordham/ofn/main/getofn.sh > /tmp/getofn.sh",
+      " if (( $? < 1 )); then echo \"Download getofn.sh success\"; else echo \"ERROR downloading getofn.sh!\"; fi",
       "/bin/chmod +x /tmp/getofn.sh",
       "echo Running getofn.sh",
       "/bin/bash /tmp/getofn.sh > /tmp/tera-getofn.log --reboot 2>&1",
-      "sudo /opt/ofn/tests/ofn_tera_storage.sh > /tmp/ofn_tera_storage.log 2>&1"
+      " if (( $? < 1 )); then echo \"getofn.sh run success\"; else echo \"ERROR running getofn.sh!\"; fi",
+      "echo Running ofn_tera_storage.sh",
+      "sudo /opt/ofn/tests/ofn_tera_storage.sh > /tmp/ofn-tera-storage.log 2>&1",
+      " if (( $? < 1 )); then echo \"ofn_tera_storage.sh run success\"; else echo \"ERROR running ofn_tera_storage.sh!\"; fi"
     ]
     connection {
       type = "ssh"

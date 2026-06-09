@@ -118,7 +118,7 @@ function sqlcl_inst () {
 
 # function autoup_inst /u01/app/oracle/product/19/dbhome_1
 #
-function sqlcl_inst () {
+function autoup_inst () {
 
   local my_ora_home=$1
 
