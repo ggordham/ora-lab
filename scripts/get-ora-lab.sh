@@ -147,7 +147,14 @@ if [ "${refresh}" == "FALSE" ]; then
     if [ "$TEST" == "TRUE" ]; then
         echo "Test mode, not running: /usr/bin/nohup /bin/bash -c /usr/bin/sleep ${wait_sec} && /usr/bin/sudo /usr/sbin/reboot" | /usr/bin/tee -a "${log_file}"
     else
-        /usr/bin/nohup /bin/bash -c "echo \"sleep for ${wait_sec}s\" &&  /usr/bin/sleep ${wait_sec}s && /usr/bin/sudo -u root /usr/sbin/reboot" >> /tmp/ora-lab-reboot.log 2>&1 &
+        reboot_script=/tmp/reboot.sh
+        echo "# ora-lab reboot script" > "${reboot_script}"
+        echo "echo \"sleep for ${wait_sec}s\" >> /tmp/ora-lab-reboot.log 2>&1" >> "${reboot_script}"
+        echo "/usr/bin/sleep ${wait_sec}s >> /tmp/ora-lab-reboot.log 2>&1" >> "${reboot_script}"
+        echo "/usr/bin/sudo -u root /usr/sbin/reboot >> /tmp/ora-lab-reboot.log 2>&1" >> "${reboot_script}"
+        echo "#/usr/bin/rm ${reboot_script}" >> "${reboot_script}"
+        
+        /usr/bin/nohup /bin/bash -c "${reboot_script}" >> /tmp/ora-lab-reboot.log 2>&1 &
         jobs | /usr/bin/tee -a "${log_file}"
     fi
 fi
