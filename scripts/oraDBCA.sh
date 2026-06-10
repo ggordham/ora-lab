@@ -179,7 +179,8 @@ if checkopt_oraDBCA "$OPTIONS" ; then
 
     # check the first part of the version number before the period
     case "${ora_ver}" in
-        "26")
+        "23")
+           # Note: version 26 is 23.26 so the first part of the version is 23 so that has to be here.
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v23.0.0" >> "$response_file" 
            db_variables="ORACLE_BASE_HOME=$( "$ORACLE_HOME"/bin/orabasehome ),${db_variables}"
            ;;
