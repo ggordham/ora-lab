@@ -158,7 +158,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
 
     # Genearte a DBCA response file
     if [ -z "${dbca_temp:-}" ]; then dbca_temp=$( cfgGet "$ORA_CONF_FILE" "${ora_ver}_dbca_temp" ); fi
-    if [ "$dbca_temp" == "__UNDEFINED__" ]; then logMesg 1 "DBCA tempalte parameter not set: $dbca_temp" E "NONE"; exit 1; fi
+    if [ "$dbca_temp" == "__UNDEFINED__" ]; then logMesg 1 "DBCA template parameter not set: $dbca_temp" E "NONE"; exit 1; fi
     response_file="/tmp/dbca_${ora_db_sid}.rsp"
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "dbca_temp: $dbca_temp" I "NONE" ; fi
     if [ "$TEST" == "TRUE" ]; then logMesg 0 "response_file: $response_file" I "NONE" ; fi

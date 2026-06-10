@@ -172,20 +172,26 @@ if checkopt_oraSwInst "$OPTIONS" ; then
             one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
             if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
 
-            # setup one off patch directories
-            for p_patch in $( echo "${one_off}" | /bin/tr "," " " ); do
-                p_dir="${stg_dir}/patch/${p_patch}"
-                if [ -d "${p_dir}"  ]; then 
-                    logMesg 0 "One off patch ${p_patch} directory exists" I "NONE"
-                    if [ -z "${one_off_list:-}" ]; then
-                        one_off_list="${p_dir}"
+            # Check if there are any one off patches
+            if [ "${one_off}" == "__UNDEFINED__" ]; then
+                logMesg 0 "No one off patchs to apply." I "NONE"
+            else
+
+                # setup one off patch directories
+                for p_patch in $( echo "${one_off}" | /bin/tr "," " " ); do
+                    p_dir="${stg_dir}/patch/${p_patch}"
+                    if [ -d "${p_dir}"  ]; then 
+                        logMesg 0 "One off patch ${p_patch} directory exists" I "NONE"
+                        if [ -z "${one_off_list:-}" ]; then
+                            one_off_list="${p_dir}"
+                        else
+                            one_off_list="${p_dir},${one_off_list}"
+                        fi
                     else
-                        one_off_list="${p_dir},${one_off_list}"
-                    fi
-                else
-                    logMesg 1 "One off patch ${p_patch} directory not found" I "NONE"
-                fi
-            done
+                        logMesg 1 "One off patch ${p_patch} directory not found" I "NONE"
+                    fi  # check if patch directory exists
+                done
+            fi # check if there are any one off patches
 
             # setting up command line paramters
             cmd_parms=""
@@ -279,11 +285,11 @@ if checkopt_oraSwInst "$OPTIONS" ; then
                 logMesg 0 "Fixing sticky bit on oracle binary." I "NONE"
                 /bin/chmod "${chk_bit}" "${ora_home}/bin/oracle"
             fi
-        fi
+        fi # check if we are in test mode before running install script
 
     else
         echo "ERROR! Did not find version: $ora_ver"
-    fi
+    fi # check if version is in main version list
 
     logMesg 0 "oraSwInst.sh finished" I "NONE"
 
