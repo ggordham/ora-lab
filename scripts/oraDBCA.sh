@@ -3,7 +3,7 @@
 
 # Internal settings
 export SCRIPTDIR 
-SCRIPTVER=1.0
+SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
@@ -179,7 +179,7 @@ if checkopt_oraDBCA "$OPTIONS" ; then
 
     # check the first part of the version number before the period
     case "${ora_ver}" in
-        "23")
+        "26")
            echo "responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v23.0.0" >> "$response_file" 
            db_variables="ORACLE_BASE_HOME=$( "$ORACLE_HOME"/bin/orabasehome ),${db_variables}"
            ;;

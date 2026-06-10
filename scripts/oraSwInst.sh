@@ -148,20 +148,29 @@ if checkopt_oraSwInst "$OPTIONS" ; then
         # if install type is unzip for 18c and above
         if [ "$install_type" = "unzip" ] || [ "$install_type" = "gldimgru" ] ; then
 
-            # looking up RU patches
-            ru_patch=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
-            one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
 
-            if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_patch: $ru_patch" I "NONE" ; fi
-            if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
-
-            # check for RU patch directory
-            ru_dir="${stg_dir}/patch/${ru_patch}"
-            if [ -d "${ru_dir}"  ]; then 
-                logMesg 0 "RU patch directory exists" I "NONE"
+            if  [ "$install_type" = "gldimgru" ] ; then
+                logMesg 0 "Gold Image RU, skipping RU patch" I "NONE" 
+                ru_patch="__UNDEFINED__"
             else
-                logMesg 1 "RU patch direcotry not found: ${ru_dir}" E "NONE"
+                logMesg 0 "Checking RU patch" I "NONE" 
+                # looking up RU patches
+                ru_patch=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_RU" )
+                if [ "$TEST" == "TRUE" ]; then logMesg 0 "ru_patch: $ru_patch" I "NONE" ; fi
+                
+                # check for RU patch directory
+                ru_dir="${stg_dir}/patch/${ru_patch}"
+                if [ -d "${ru_dir}"  ]; then 
+                    logMesg 0 "RU patch directory exists" I "NONE"
+                else
+                    logMesg 1 "RU patch direcotry not found: ${ru_dir}" E "NONE"
+                fi
             fi
+
+            # looking up one off patches
+            logMesg 0 "Checking one off patchs" I "NONE" 
+            one_off=$( cfgGet "${ORA_CONF_FILE}" "${ora_sub_ver}_ONEOFF" )
+            if [ "$TEST" == "TRUE" ]; then logMesg 0 "one_off: $one_off" I "NONE" ; fi
 
             # setup one off patch directories
             for p_patch in $( echo "${one_off}" | /bin/tr "," " " ); do

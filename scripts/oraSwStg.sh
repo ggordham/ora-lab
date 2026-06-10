@@ -292,7 +292,7 @@ if checkopt_oraSwStg "$OPTIONS" ; then
         # Generate a list of patches for RU and One Offs
         if [ "$gl_list" == "__UNDEFINED__" ]; then logMesg 0 "No Gold Images to download for $ora_sub_ver" I "NONE"
             else p_list="$gl_list"; logMesg 0 "Gold Images list: $gl_list" I "NONE"; fi
-        if [ "$ru_list" == "__UNDEFINED__" ]; then logMesg 0 "No RU patch to download for $ora_sub_ver" I "NONE"
+        if [ "$ru_list" == "__UNDEFINED__" ] || [ "$gl_list" !=  "__UNDEFINED__" ]; then logMesg 0 "No RU patch to download for $ora_sub_ver or Gold Image RU" I "NONE"
             else p_list="$ru_list"; logMesg 0 "RU patches: $ru_list" I "NONE"; fi
         if [ "$one_off" == "__UNDEFINED__" ]; then logMesg 0 "No one off patchs to download for $ora_sub_ver" I "NONE"
             elif [ "$p_list" == "" ]; then p_list="${one_off}"; logMesg 0 "One off patche: $one_off" I "NONE"
