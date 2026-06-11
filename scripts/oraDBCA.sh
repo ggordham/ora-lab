@@ -7,6 +7,8 @@ SCRIPTVER=1.1
 SCRIPTNAME=$(basename "${BASH_SOURCE[0]}")
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/oralab.shlib
 
+return_code=0
+
 # retun command line help information
 function help_oraDBCA {
   echo >&2
@@ -214,7 +216,8 @@ if checkopt_oraDBCA "$OPTIONS" ; then
         logMesg 0 "dbca command:  $ORACLE_HOME/bin/dbca $dbca_options -responseFile $response_file" I "NONE" 
     else
         sh -c "${ORACLE_HOME}/bin/dbca $dbca_options -responseFile $response_file"
-        logMesg 0 "dbca completed with return code: $?" I "NONE"
+        return_code=$?
+        logMesg 0 "dbca completed with return code: ${return_code}" I "NONE"
     fi
 
     # Old options not included 
@@ -231,8 +234,9 @@ if checkopt_oraDBCA "$OPTIONS" ; then
 
 else
     echo "ERROR - invalid command line parameters" >&2
-    exit 1
+    return_code=1
 fi
 
+exit ${return_code}
 #END
 
