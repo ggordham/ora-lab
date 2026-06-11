@@ -277,6 +277,11 @@ if checkopt_oraLnxPre "$OPTIONS" ; then
         /bin/sed -i 's/^oracle./grid/g' /etc/security/limits.d/oracle-grid-preinstall-19c.conf
     fi
 
+    # for Linux 9 and above we may need the EPEL repository for gnuplot or other items
+    if (( os_ver > 8 )); then
+        logMesg 0 "Detected OS version: ${os_ver} Adding EPEL repository to OS." I "NONE"
+        "${rpm_tool}" -y install "oracle-epel-release-el${os_ver}"
+    fi
 
     logMesg 0 "oraLnxPre.sh finished" I "NONE"
 
